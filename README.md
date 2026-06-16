@@ -38,12 +38,13 @@ type User = {
 };
 
 const columns: Column<User>[] = [
-  { key: "name", header: "Name" },
-  { key: "role", header: "Role" },
+  { accessorKey: "name", header: "Name", sortable: true },
+  { accessorKey: "role", header: "Role", sortable: true },
   {
-    key: "status",
+    accessorKey: "status",
     header: "Status",
-    render: (user) => <strong>{user.status}</strong>,
+    sortable: true,
+    cell: ({ value }) => <strong>{String(value)}</strong>,
   },
 ];
 
@@ -58,6 +59,7 @@ export function UsersTable() {
       columns={columns}
       data={users}
       emptyMessage="No users found."
+      getRowId={(user) => user.id}
     />
   );
 }
@@ -73,14 +75,55 @@ export function UsersTable() {
 | `data` | `T[]` | Yes | Rows rendered by the grid. |
 | `loading` | `boolean` | No | Displays a loading state when true. |
 | `emptyMessage` | `string` | No | Message shown when `data` is empty. |
+| `getRowId` | `(row: T, index: number) => string \| number` | No | Returns a stable key for each row. |
+| `defaultSort` | `SortState \| null` | No | Initial uncontrolled sort state. |
+| `sort` | `SortState \| null` | No | Controlled sort state. |
+| `onSortChange` | `(sort: SortState \| null) => void` | No | Called when a sortable header changes sort state. |
 
 ### `Column<T>`
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `key` | `keyof T \| string` | Yes | Field used to read the row value and key the cell. |
-| `header` | `string` | Yes | Text rendered in the column header. |
-| `render` | `(row: T) => ReactNode` | No | Custom cell renderer for derived or formatted values. |
+| `id` | `string` | No | Stable column id. Useful when using `accessorFn`. |
+| `accessorKey` | `keyof T` | No | Field used to read the row value. |
+| `accessorFn` | `(row: T) => TValue` | No | Function used to derive the cell value. |
+| `key` | `keyof T \| string` | No | Legacy alias for simple field access. |
+| `header` | `ReactNode` | Yes | Content rendered in the column header. |
+| `cell` | `(context: CellContext<T, TValue>) => ReactNode` | No | Custom cell renderer with access to row, value, row index, and column. |
+| `render` | `(row: T) => ReactNode` | No | Legacy custom cell renderer. |
+| `align` | `"left" \| "center" \| "right"` | No | Horizontal alignment for header and cells. |
+| `width` | `number \| string` | No | Column width. Numbers are treated as pixels. |
+| `sortable` | `boolean` | No | Enables header click sorting for the column. |
+| `sortAccessor` | `(row: T) => string \| number \| Date \| null \| undefined` | No | Custom value used for sorting. |
+
+### Sorting
+
+Mark a column as sortable to enable built-in client-side sorting:
+
+```tsx
+const columns: Column<User>[] = [
+  { accessorKey: "name", header: "Name", sortable: true },
+  {
+    accessorKey: "status",
+    header: "Status",
+    sortable: true,
+    sortAccessor: (user) => user.status,
+  },
+];
+```
+
+For controlled sorting, pass `sort` and `onSortChange`:
+
+```tsx
+const [sort, setSort] = useState<SortState | null>(null);
+
+<DataGrid
+  columns={columns}
+  data={users}
+  sort={sort}
+  onSortChange={setSort}
+/>;
+```
 
 ## Local Development
 
