@@ -9,11 +9,12 @@ type User = {
 };
 
 const columns: Column<User>[] = [
-  { accessorKey: "name", header: "Name" },
-  { accessorKey: "role", header: "Role" },
+  { accessorKey: "name", header: "Name", sortable: true },
+  { accessorKey: "role", header: "Role", sortable: true },
   {
     accessorKey: "status",
     header: "Status",
+    sortable: true,
     cell: ({ value }) => (
       <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
         {String(value)}
@@ -29,9 +30,21 @@ const users: User[] = [
 
 export function DataGridExample() {
   return (
-    <DataGrid columns={columns} data={users} emptyMessage="No users found." />
+    <DataGrid
+      columns={columns}
+      data={users}
+      emptyMessage="No users found."
+      getRowId={(user) => user.id}
+    />
   );
 }
 
 export { DataGrid };
-export type { CellContext, Column, ColumnAlign, DataGridProps } from "./types";
+export type {
+  CellContext,
+  Column,
+  ColumnAlign,
+  DataGridProps,
+  SortDirection,
+  SortState,
+} from "./types";
