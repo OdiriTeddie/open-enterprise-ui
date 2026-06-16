@@ -1,5 +1,5 @@
 import { DataGrid } from "./DataGrid";
-import type { Column, DataGridProps } from "./DataGrid";
+import type { Column } from "./types";
 
 type User = {
   id: number;
@@ -9,14 +9,14 @@ type User = {
 };
 
 const columns: Column<User>[] = [
-  { key: "name", header: "Name" },
-  { key: "role", header: "Role" },
+  { accessorKey: "name", header: "Name" },
+  { accessorKey: "role", header: "Role" },
   {
-    key: "status",
+    accessorKey: "status",
     header: "Status",
-    render: (user) => (
+    cell: ({ value }) => (
       <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-        {user.status}
+        {String(value)}
       </span>
     ),
   },
@@ -34,4 +34,4 @@ export function DataGridExample() {
 }
 
 export { DataGrid };
-export type { Column, DataGridProps };
+export type { CellContext, Column, ColumnAlign, DataGridProps } from "./types";
