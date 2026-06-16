@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
 export type ColumnAlign = "left" | "center" | "right";
+export type SortDirection = "asc" | "desc";
+
+export type SortState = {
+  columnId: string;
+  direction: SortDirection;
+};
 
 export type CellContext<T, TValue = unknown> = {
   row: T;
@@ -20,6 +26,7 @@ export type Column<T, TValue = unknown> = {
   align?: ColumnAlign;
   width?: number | string;
   sortable?: boolean;
+  sortAccessor?: (row: T) => string | number | Date | null | undefined;
 };
 
 export type DataGridProps<T> = {
@@ -28,4 +35,7 @@ export type DataGridProps<T> = {
   loading?: boolean;
   emptyMessage?: string;
   getRowId?: (row: T, index: number) => string | number;
+  defaultSort?: SortState | null;
+  sort?: SortState | null;
+  onSortChange?: (sort: SortState | null) => void;
 };
