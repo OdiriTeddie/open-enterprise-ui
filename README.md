@@ -1,26 +1,29 @@
-# React UI Kit
+# Open Enterprise UI
 
-Enterprise-ready React components for teams building internal tools, admin panels, dashboards, and data-heavy products.
+Open-source UI components for teams building internal tools, admin panels, dashboards, and data-heavy products.
 
-The project is starting with a typed `DataGrid` component and will grow into a broader set of reusable UI primitives and composed business components.
+The project currently starts with the React package and a typed `DataGrid`. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
 
-## Status
+## Packages
 
-This package is early-stage. The public API may change while the first components are being shaped.
+| Package | Status | Description |
+| --- | --- | --- |
+| `@open-enterprise-ui/react` | Early development | React components, starting with `DataGrid`. |
+| `@open-enterprise-ui/vue` | Planned | Vue components. |
 
 ## Goals
 
-- TypeScript-first React components.
+- TypeScript-first component APIs.
 - Practical defaults for enterprise applications.
-- Composable APIs instead of locked-in page templates.
+- Composable components instead of locked-in page templates.
 - Accessible, predictable markup.
-- Styling that works well with Tailwind CSS.
+- Framework packages that can share design direction over time.
 - Small, focused components that can be adopted one at a time.
 
 ## Installation
 
 ```bash
-pnpm add react-ui-kit
+pnpm add @open-enterprise-ui/react
 ```
 
 React is a peer dependency, so your app should already provide `react` and `react-dom`.
@@ -28,7 +31,7 @@ React is a peer dependency, so your app should already provide `react` and `reac
 ## Usage
 
 ```tsx
-import { DataGrid, type Column } from "react-ui-kit";
+import { DataGrid, type Column } from "@open-enterprise-ui/react";
 
 type User = {
   id: number;
@@ -48,12 +51,7 @@ const columns: Column<User>[] = [
   },
 ];
 
-const users: User[] = [
-  { id: 1, name: "Ada Lovelace", role: "Engineer", status: "Active" },
-  { id: 2, name: "Grace Hopper", role: "Admin", status: "Invited" },
-];
-
-export function UsersTable() {
+export function UsersTable({ users }: { users: User[] }) {
   return (
     <DataGrid
       columns={columns}
@@ -65,65 +63,17 @@ export function UsersTable() {
 }
 ```
 
-## DataGrid API
+## Repository Structure
 
-### `DataGrid<T>`
-
-| Prop | Type | Required | Description |
-| --- | --- | --- | --- |
-| `columns` | `Column<T>[]` | Yes | Column definitions for the table. |
-| `data` | `T[]` | Yes | Rows rendered by the grid. |
-| `loading` | `boolean` | No | Displays a loading state when true. |
-| `emptyMessage` | `string` | No | Message shown when `data` is empty. |
-| `getRowId` | `(row: T, index: number) => string \| number` | No | Returns a stable key for each row. |
-| `defaultSort` | `SortState \| null` | No | Initial uncontrolled sort state. |
-| `sort` | `SortState \| null` | No | Controlled sort state. |
-| `onSortChange` | `(sort: SortState \| null) => void` | No | Called when a sortable header changes sort state. |
-
-### `Column<T>`
-
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `id` | `string` | No | Stable column id. Useful when using `accessorFn`. |
-| `accessorKey` | `keyof T` | No | Field used to read the row value. |
-| `accessorFn` | `(row: T) => TValue` | No | Function used to derive the cell value. |
-| `key` | `keyof T \| string` | No | Legacy alias for simple field access. |
-| `header` | `ReactNode` | Yes | Content rendered in the column header. |
-| `cell` | `(context: CellContext<T, TValue>) => ReactNode` | No | Custom cell renderer with access to row, value, row index, and column. |
-| `render` | `(row: T) => ReactNode` | No | Legacy custom cell renderer. |
-| `align` | `"left" \| "center" \| "right"` | No | Horizontal alignment for header and cells. |
-| `width` | `number \| string` | No | Column width. Numbers are treated as pixels. |
-| `sortable` | `boolean` | No | Enables header click sorting for the column. |
-| `sortAccessor` | `(row: T) => string \| number \| Date \| null \| undefined` | No | Custom value used for sorting. |
-
-### Sorting
-
-Mark a column as sortable to enable built-in client-side sorting:
-
-```tsx
-const columns: Column<User>[] = [
-  { accessorKey: "name", header: "Name", sortable: true },
-  {
-    accessorKey: "status",
-    header: "Status",
-    sortable: true,
-    sortAccessor: (user) => user.status,
-  },
-];
+```text
+packages/
+  react/
+    src/
+    package.json
 ```
 
-For controlled sorting, pass `sort` and `onSortChange`:
-
-```tsx
-const [sort, setSort] = useState<SortState | null>(null);
-
-<DataGrid
-  columns={columns}
-  data={users}
-  sort={sort}
-  onSortChange={setSort}
-/>;
-```
+- `packages/react` contains the current React package and local Vite playground.
+- Future framework packages should live under `packages/*`.
 
 ## Local Development
 
@@ -133,52 +83,34 @@ Install dependencies:
 pnpm install
 ```
 
-Run the playground app:
+Run the React playground:
 
 ```bash
 pnpm dev
 ```
 
-Type-check the app:
+Run checks:
 
 ```bash
 pnpm typecheck
-```
-
-Run lint:
-
-```bash
 pnpm lint
-```
-
-Build the package:
-
-```bash
 pnpm build
 ```
 
-## Project Structure
+You can also run commands directly against the React package:
 
-```text
-src/
-  components/
-    data-grid/
-      DataGrid.tsx
-      index.tsx
-  index.ts
+```bash
+pnpm --filter @open-enterprise-ui/react dev
 ```
-
-- `src/index.ts` is the library entrypoint.
-- `src/components/**` contains reusable package components.
-- `src/App.tsx` is only the local playground/demo surface.
 
 ## Roadmap
 
-- DataGrid sorting, selection, pagination, and column alignment.
+- DataGrid pagination, filtering, selection, and column resizing.
 - Form controls for enterprise workflows.
 - Navigation, tabs, modals, and command surfaces.
 - Dashboard and data-display components.
 - Stronger accessibility coverage and interaction tests.
+- Shared foundations for future framework packages.
 
 ## Contributing
 

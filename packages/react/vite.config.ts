@@ -8,8 +8,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
-      name: "ReactUiKit",
-      fileName: "react-ui-kit",
+      name: "OpenEnterpriseUiReact",
+      fileName: "open-enterprise-ui-react",
     },
     rollupOptions: {
       external: ["react", "react-dom", "react/jsx-runtime"],

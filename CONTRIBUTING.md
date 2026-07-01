@@ -9,7 +9,7 @@ pnpm install
 pnpm dev
 ```
 
-The Vite app is a local playground. Package exports should come from `src/index.ts`.
+The React Vite app is a local playground in `packages/react`. Package exports should come from `packages/react/src/index.ts`.
 
 ## Checks
 
