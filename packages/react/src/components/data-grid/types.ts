@@ -8,6 +8,11 @@ export type SortState = {
   direction: SortDirection;
 };
 
+export type PaginationState = {
+  pageIndex: number;
+  pageSize: number;
+};
+
 export type CellContext<T, TValue = unknown> = {
   row: T;
   value: TValue;
@@ -38,4 +43,8 @@ export type DataGridProps<T> = {
   defaultSort?: SortState | null;
   sort?: SortState | null;
   onSortChange?: (sort: SortState | null) => void;
+  defaultPagination?: PaginationState;
+  pagination?: PaginationState;
+  onPaginationChange?: (pagination: PaginationState) => void;
+  pageSizeOptions?: number[];
 };

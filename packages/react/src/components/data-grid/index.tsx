@@ -26,6 +26,10 @@ const columns: Column<User>[] = [
 const users: User[] = [
   { id: 1, name: "Ada Lovelace", role: "Engineer", status: "Active" },
   { id: 2, name: "Grace Hopper", role: "Admin", status: "Invited" },
+  { id: 3, name: "Katherine Johnson", role: "Analyst", status: "Active" },
+  { id: 4, name: "Mary Jackson", role: "Engineer", status: "Active" },
+  { id: 5, name: "Dorothy Vaughan", role: "Admin", status: "Invited" },
+  { id: 6, name: "Annie Easley", role: "Engineer", status: "Active" },
 ];
 
 export function DataGridExample() {
@@ -35,6 +39,8 @@ export function DataGridExample() {
       data={users}
       emptyMessage="No users found."
       getRowId={(user) => user.id}
+      defaultPagination={{ pageIndex: 0, pageSize: 5 }}
+      pageSizeOptions={[5, 10, 25]}
     />
   );
 }
@@ -45,6 +51,7 @@ export type {
   Column,
   ColumnAlign,
   DataGridProps,
+  PaginationState,
   SortDirection,
   SortState,
 } from "./types";

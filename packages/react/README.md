@@ -33,10 +33,21 @@ export function UsersTable({ users }: { users: User[] }) {
       data={users}
       getRowId={(user) => user.id}
       emptyMessage="No users found."
+      defaultPagination={{ pageIndex: 0, pageSize: 10 }}
+      pageSizeOptions={[10, 25, 50]}
     />
   );
 }
 ```
+
+## DataGrid Features
+
+- Typed column definitions.
+- Accessor keys and accessor functions.
+- Custom cell rendering.
+- Column alignment and widths.
+- Controlled and uncontrolled sorting.
+- Controlled and uncontrolled pagination.
 
 ## Development
 

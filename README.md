@@ -58,6 +58,8 @@ export function UsersTable({ users }: { users: User[] }) {
       data={users}
       emptyMessage="No users found."
       getRowId={(user) => user.id}
+      defaultPagination={{ pageIndex: 0, pageSize: 10 }}
+      pageSizeOptions={[10, 25, 50]}
     />
   );
 }
@@ -105,7 +107,7 @@ pnpm --filter @open-enterprise-ui/react dev
 
 ## Roadmap
 
-- DataGrid pagination, filtering, selection, and column resizing.
+- DataGrid filtering, selection, column resizing, and server-side workflows.
 - Form controls for enterprise workflows.
 - Navigation, tabs, modals, and command surfaces.
 - Dashboard and data-display components.
@@ -127,3 +129,4 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
+
