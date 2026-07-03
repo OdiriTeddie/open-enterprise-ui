@@ -1,4 +1,4 @@
-import type { Column, SortState } from "./types";
+import type { Column, PaginationState, SortState } from "./types";
 
 export function getColumnId<T>(column: Column<T>): string {
   return String(column.id ?? column.accessorKey ?? column.key);
@@ -80,8 +80,28 @@ export function sortRows<T>(
   });
 }
 
+export function paginateRows<T>(
+  rows: T[],
+  pagination: PaginationState,
+): T[] {
+  const start = pagination.pageIndex * pagination.pageSize;
+  const end = start + pagination.pageSize;
+
+  return rows.slice(start, end);
+}
+
+export function getPageCount(rowCount: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(rowCount / pageSize));
+}
+
+export function clampPageIndex(pageIndex: number, pageCount: number): number {
+  return Math.min(Math.max(pageIndex, 0), pageCount - 1);
+}
+
 function getSortValue<T>(row: T, column: Column<T>) {
-  return column.sortAccessor ? column.sortAccessor(row) : getColumnValue(row, column);
+  return column.sortAccessor
+    ? column.sortAccessor(row)
+    : getColumnValue(row, column);
 }
 
 function compareValues(firstValue: unknown, secondValue: unknown): number {
