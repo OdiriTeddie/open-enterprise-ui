@@ -323,6 +323,58 @@ describe("DataGrid", () => {
 
     expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 170 });
   });
+
+  it("leaves rows untouched in server mode", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        mode="server"
+        rowCount={30}
+        filter={{ global: "grace" }}
+        sort={{ columnId: "name", direction: "desc" }}
+        pagination={{ pageIndex: 1, pageSize: 1 }}
+        pageSizeOptions={[1]}
+      />,
+    );
+
+    const bodyRows = within(screen.getAllByRole("rowgroup")[1]).getAllByRole(
+      "row",
+    );
+
+    expect(bodyRows).toHaveLength(3);
+    expect(bodyRows[0]).toHaveTextContent("Ada Lovelace");
+    expect(bodyRows[1]).toHaveTextContent("Grace Hopper");
+    expect(bodyRows[2]).toHaveTextContent("Katherine Johnson");
+  });
+
+  it("uses server row counts for pagination metadata", async () => {
+    const user = userEvent.setup();
+    const onPaginationChange = vi.fn();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={[users[0], users[1]]}
+        mode="server"
+        rowCount={30}
+        pagination={{ pageIndex: 1, pageSize: 10 }}
+        onPaginationChange={onPaginationChange}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    expect(screen.getByText("11-12 of 30")).toBeInTheDocument();
+    expect(screen.getByText("Page 2 of 3")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
+
+    expect(onPaginationChange).toHaveBeenCalledWith({
+      pageIndex: 2,
+      pageSize: 10,
+    });
+  });
+
   it("calls controlled state change handlers", async () => {
     const user = userEvent.setup();
     const onSortChange = vi.fn();

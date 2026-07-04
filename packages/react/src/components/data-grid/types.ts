@@ -5,6 +5,7 @@ export type RowId = string | number;
 export type ColumnSizingState = Record<string, number>;
 export type ColumnVisibilityState = Record<string, boolean>;
 export type SortDirection = "asc" | "desc";
+export type DataGridMode = "client" | "server";
 
 export type SortState = {
   columnId: string;
@@ -46,6 +47,8 @@ export type Column<T, TValue = unknown> = {
 export type DataGridProps<T> = {
   columns: Column<T>[];
   data: T[];
+  mode?: DataGridMode;
+  rowCount?: number;
   loading?: boolean;
   emptyMessage?: string;
   renderLoading?: () => ReactNode;

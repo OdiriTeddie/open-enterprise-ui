@@ -5,6 +5,7 @@ export type {
   ColumnAlign,
   ColumnSizingState,
   ColumnVisibilityState,
+  DataGridMode,
   DataGridProps,
   FilterState,
   PaginationState,

@@ -37,6 +37,8 @@ const COLUMN_RESIZE_KEYBOARD_STEP = 10;
 export function DataGrid<T>({
   columns,
   data,
+  mode = "client",
+  rowCount,
   loading = false,
   emptyMessage,
   renderLoading,
@@ -96,6 +98,7 @@ export function DataGrid<T>({
     columnVisibility === undefined
       ? internalColumnVisibility
       : columnVisibility;
+  const isServerMode = mode === "server";
   const renderedColumns = useMemo(
     () =>
       columns.filter(
@@ -108,14 +111,16 @@ export function DataGrid<T>({
     [activeSelectedRowIds],
   );
   const filteredData = useMemo(
-    () => filterRows(data, columns, activeFilter),
-    [activeFilter, columns, data],
+    () => (isServerMode ? data : filterRows(data, columns, activeFilter)),
+    [activeFilter, columns, data, isServerMode],
   );
   const sortedData = useMemo(
-    () => sortRows(filteredData, columns, activeSort),
-    [activeSort, columns, filteredData],
+    () =>
+      isServerMode ? filteredData : sortRows(filteredData, columns, activeSort),
+    [activeSort, columns, filteredData, isServerMode],
   );
-  const pageCount = getPageCount(sortedData.length, activePagination.pageSize);
+  const totalRowCount = isServerMode ? (rowCount ?? data.length) : sortedData.length;
+  const pageCount = getPageCount(totalRowCount, activePagination.pageSize);
   const safePagination = useMemo(
     () => ({
       ...activePagination,
@@ -124,8 +129,8 @@ export function DataGrid<T>({
     [activePagination, pageCount],
   );
   const paginatedData = useMemo(
-    () => paginateRows(sortedData, safePagination),
-    [safePagination, sortedData],
+    () => (isServerMode ? sortedData : paginateRows(sortedData, safePagination)),
+    [isServerMode, safePagination, sortedData],
   );
   const visibleRows = useMemo(
     () =>
@@ -149,19 +154,19 @@ export function DataGrid<T>({
     visibleRowIds.length > 0 && selectedVisibleRowCount === visibleRowIds.length;
   const areSomeVisibleRowsSelected =
     selectedVisibleRowCount > 0 && !areAllVisibleRowsSelected;
-  const hasRows = data.length > 0;
+  const hasRows = isServerMode ? totalRowCount > 0 : data.length > 0;
   const hasVisibleRows = paginatedData.length > 0;
   const emptyColumnSpan = renderedColumns.length + (enableRowSelection ? 1 : 0);
   const firstVisibleRowNumber = hasVisibleRows
     ? safePagination.pageIndex * safePagination.pageSize + 1
     : 0;
   const lastVisibleRowNumber = Math.min(
-    (safePagination.pageIndex + 1) * safePagination.pageSize,
-    sortedData.length,
+    safePagination.pageIndex * safePagination.pageSize + paginatedData.length,
+    totalRowCount,
   );
   const shouldRenderPagination =
     showPagination &&
-    (sortedData.length > safePagination.pageSize || pageSizeOptions.length > 1);
+    (totalRowCount > safePagination.pageSize || pageSizeOptions.length > 1);
 
   function handleSort(column: Column<T>) {
     if (!column.sortable) {
@@ -179,7 +184,7 @@ export function DataGrid<T>({
 
   function handlePaginationChange(nextPagination: PaginationState) {
     const nextPageCount = getPageCount(
-      sortedData.length,
+      totalRowCount,
       nextPagination.pageSize,
     );
     const nextState = {
@@ -532,7 +537,7 @@ export function DataGrid<T>({
             </label>
 
             <span aria-live="polite">
-              {firstVisibleRowNumber}-{lastVisibleRowNumber} of {sortedData.length}
+              {firstVisibleRowNumber}-{lastVisibleRowNumber} of {totalRowCount}
             </span>
           </div>
 

@@ -8,6 +8,7 @@
 import {
   DataGrid,
   type Column,
+  type DataGridMode,
   type FilterState,
   type PaginationState,
   type RowId,
@@ -51,13 +52,42 @@ export function UsersTable({ users }: { users: User[] }) {
 
 ## Data Pipeline
 
-Rows are processed in this order:
+By default, rows are processed in client mode in this order:
 
 ```text
 data -> filteredData -> sortedData -> paginatedData
 ```
 
 This keeps behavior predictable when features are combined. For example, filtering resets pagination to the first page, sorting runs after filtering, and pagination only slices the final sorted result.
+
+Use `mode="server"` when the consuming app owns filtering, sorting, pagination, and remote data loading. In server mode, DataGrid renders the `data` array exactly as provided while still emitting `onFilterChange`, `onSortChange`, and `onPaginationChange`.
+
+
+## Server-Side Mode
+
+```tsx
+const [sort, setSort] = useState<SortState | null>(null);
+const [filter, setFilter] = useState<FilterState>({ global: "" });
+const [pagination, setPagination] = useState<PaginationState>({
+  pageIndex: 0,
+  pageSize: 10,
+});
+
+<DataGrid
+  columns={columns}
+  data={usersPage}
+  mode="server"
+  rowCount={totalUsers}
+  sort={sort}
+  onSortChange={setSort}
+  filter={filter}
+  onFilterChange={setFilter}
+  pagination={pagination}
+  onPaginationChange={setPagination}
+/>;
+```
+
+Server mode skips internal filtering, sorting, and pagination. Use the controlled state callbacks to update your query parameters, fetch the next page of rows, and pass the current page back through `data`. `rowCount` represents the total number of rows on the server and is used for page counts and range text.
 
 ## Column API
 
@@ -282,7 +312,9 @@ DataGrid includes:
 | Prop | Type | Description |
 | --- | --- | --- |
 | `columns` | `Column<T>[]` | Column definitions. |
-| `data` | `T[]` | Source rows. |
+| `data` | `T[]` | Source rows. In server mode, this should be the current page of rows. |
+| `mode` | `"client" \| "server"` | Chooses whether DataGrid transforms rows internally or renders server-provided rows as-is. |
+| `rowCount` | `number` | Total server row count used for pagination metadata in server mode. |
 | `loading` | `boolean` | Shows the loading state. |
 | `emptyMessage` | `string` | Fallback empty message. |
 | `renderLoading` | `() => ReactNode` | Custom loading state. |
@@ -320,6 +352,8 @@ DataGrid includes:
 ## State Types
 
 ```ts
+type DataGridMode = "client" | "server";
+
 type SortState = {
   columnId: string;
   direction: "asc" | "desc";
