@@ -127,6 +127,42 @@ describe("DataGrid", () => {
     expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
   });
 
+
+  it("renders custom loading, empty, and no-results states", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <DataGrid
+        columns={columns}
+        data={[]}
+        loading
+        renderLoading={() => <span>Fetching users</span>}
+      />,
+    );
+
+    expect(screen.getByText("Fetching users")).toBeInTheDocument();
+
+    rerender(
+      <DataGrid
+        columns={columns}
+        data={[]}
+        renderEmpty={() => <span>No users yet</span>}
+      />,
+    );
+
+    expect(screen.getByText("No users yet")).toBeInTheDocument();
+
+    rerender(
+      <DataGrid
+        columns={columns}
+        data={users}
+        renderNoResults={() => <span>No users matched your search</span>}
+      />,
+    );
+
+    await user.type(screen.getByRole("searchbox"), "no-match");
+
+    expect(screen.getByText("No users matched your search")).toBeInTheDocument();
+  });
   it("selects and deselects a row", async () => {
     const user = userEvent.setup();
     renderGrid();
@@ -217,3 +253,4 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
+

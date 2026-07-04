@@ -34,6 +34,9 @@ export function DataGrid<T>({
   data,
   loading = false,
   emptyMessage,
+  renderLoading,
+  renderEmpty,
+  renderNoResults,
   getRowId,
   defaultSort = null,
   sort,
@@ -208,7 +211,11 @@ export function DataGrid<T>({
   }
 
   if (loading) {
-    return <div className="p-4 text-sm text-gray-500">Loading....</div>;
+    return (
+      <div className="p-4 text-sm text-gray-500">
+        {renderLoading ? renderLoading() : "Loading...."}
+      </div>
+    );
   }
 
   return (
@@ -282,7 +289,13 @@ export function DataGrid<T>({
                   colSpan={emptyColumnSpan}
                   className="px-4 py-6 text-center text-gray-500"
                 >
-                  {hasRows ? "No matching rows found." : emptyMessage}
+                  {hasRows
+                    ? renderNoResults
+                      ? renderNoResults()
+                      : "No matching rows found."
+                    : renderEmpty
+                      ? renderEmpty()
+                      : emptyMessage}
                 </td>
               </tr>
             ) : (
@@ -454,4 +467,5 @@ function getAriaSort(
 
   return sort.direction === "asc" ? "ascending" : "descending";
 }
+
 

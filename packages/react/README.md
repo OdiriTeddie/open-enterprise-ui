@@ -53,6 +53,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Controlled and uncontrolled sorting.
 - Controlled and uncontrolled pagination with first/previous/next/last controls.
 - Controlled and uncontrolled row selection.
+- Custom loading, empty, and no-results render slots.
 
 ## Development
 
@@ -65,6 +66,7 @@ pnpm --filter @open-enterprise-ui/react lint
 pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
+
 
 
 

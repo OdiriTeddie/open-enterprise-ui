@@ -46,6 +46,9 @@ export type DataGridProps<T> = {
   data: T[];
   loading?: boolean;
   emptyMessage?: string;
+  renderLoading?: () => ReactNode;
+  renderEmpty?: () => ReactNode;
+  renderNoResults?: () => ReactNode;
   getRowId?: (row: T, index: number) => RowId;
   defaultSort?: SortState | null;
   sort?: SortState | null;
@@ -65,4 +68,5 @@ export type DataGridProps<T> = {
   selectedRowIds?: RowId[];
   onRowSelectionChange?: (selectedRowIds: RowId[]) => void;
 };
+
 
