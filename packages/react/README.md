@@ -37,6 +37,7 @@ export function UsersTable({ users }: { users: User[] }) {
       pageSizeOptions={[10, 25, 50]}
       globalFilterPlaceholder="Search users..."
       enableRowSelection
+      showPagination
     />
   );
 }
@@ -50,7 +51,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Column alignment and widths.
 - Controlled and uncontrolled filtering.
 - Controlled and uncontrolled sorting.
-- Controlled and uncontrolled pagination.
+- Controlled and uncontrolled pagination with first/previous/next/last controls.
 - Controlled and uncontrolled row selection.
 
 ## Development
@@ -64,6 +65,7 @@ pnpm --filter @open-enterprise-ui/react lint
 pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
+
 
 
 

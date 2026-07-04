@@ -54,6 +54,7 @@ export type DataGridProps<T> = {
   pagination?: PaginationState;
   onPaginationChange?: (pagination: PaginationState) => void;
   pageSizeOptions?: number[];
+  showPagination?: boolean;
   defaultFilter?: FilterState;
   filter?: FilterState;
   onFilterChange?: (filter: FilterState) => void;
@@ -64,3 +65,4 @@ export type DataGridProps<T> = {
   selectedRowIds?: RowId[];
   onRowSelectionChange?: (selectedRowIds: RowId[]) => void;
 };
+

@@ -62,6 +62,7 @@ export function UsersTable({ users }: { users: User[] }) {
       pageSizeOptions={[10, 25, 50]}
       globalFilterPlaceholder="Search users..."
       enableRowSelection
+      showPagination
     />
   );
 }
@@ -133,6 +134,7 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
+
 
 
 

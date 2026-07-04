@@ -71,21 +71,54 @@ describe("DataGrid", () => {
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
     expect(screen.queryByText("Katherine Johnson")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
 
     expect(screen.getByText("Katherine Johnson")).toBeInTheDocument();
     expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Previous" }));
+    await user.click(screen.getByRole("button", { name: "Go to previous page" }));
 
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+  });
+
+  it("shows row range text and jumps to first and last pages", async () => {
+    const user = userEvent.setup();
+    renderGrid();
+
+    expect(screen.getByText("1-2 of 3")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go to last page" }));
+
+    expect(screen.getByText("3-3 of 3")).toBeInTheDocument();
+    expect(screen.getByText("Katherine Johnson")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Go to first page" }));
+
+    expect(screen.getByText("1-2 of 3")).toBeInTheDocument();
+    expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
+  });
+
+  it("hides pagination when it is not needed", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={[users[0]]}
+        emptyMessage="No users found."
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    expect(screen.queryByText("Rows per page")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Go to next page" }),
+    ).not.toBeInTheDocument();
   });
 
   it("resets to the first page when filtering changes", async () => {
     const user = userEvent.setup();
     renderGrid();
 
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
     expect(screen.getByText("Katherine Johnson")).toBeInTheDocument();
 
     await user.type(screen.getByRole("searchbox"), "ada");
@@ -135,9 +168,9 @@ describe("DataGrid", () => {
     renderGrid();
 
     await user.click(screen.getByRole("checkbox", { name: "Select row 1" }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
     await user.click(screen.getByRole("checkbox", { name: "Select row 3" }));
-    await user.click(screen.getByRole("button", { name: "Previous" }));
+    await user.click(screen.getByRole("button", { name: "Go to previous page" }));
 
     expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeChecked();
   });
@@ -169,7 +202,7 @@ describe("DataGrid", () => {
 
     await user.click(screen.getByRole("button", { name: /name/i }));
     await user.type(screen.getByRole("searchbox"), "ada");
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Go to next page" }));
     await user.click(screen.getByRole("checkbox", { name: "Select row 1" }));
 
     expect(onSortChange).toHaveBeenCalledWith({
@@ -184,4 +217,3 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
-

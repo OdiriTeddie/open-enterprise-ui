@@ -42,6 +42,7 @@ export function DataGrid<T>({
   pagination,
   onPaginationChange,
   pageSizeOptions = [10, 25, 50],
+  showPagination = true,
   defaultFilter = DEFAULT_FILTER,
   filter,
   onFilterChange,
@@ -114,6 +115,16 @@ export function DataGrid<T>({
   const hasRows = data.length > 0;
   const hasVisibleRows = paginatedData.length > 0;
   const emptyColumnSpan = columns.length + (enableRowSelection ? 1 : 0);
+  const firstVisibleRowNumber = hasVisibleRows
+    ? safePagination.pageIndex * safePagination.pageSize + 1
+    : 0;
+  const lastVisibleRowNumber = Math.min(
+    (safePagination.pageIndex + 1) * safePagination.pageSize,
+    sortedData.length,
+  );
+  const shouldRenderPagination =
+    showPagination &&
+    (sortedData.length > safePagination.pageSize || pageSizeOptions.length > 1);
 
   function handleSort(column: Column<T>) {
     if (!column.sortable) {
@@ -319,56 +330,97 @@ export function DataGrid<T>({
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex items-center gap-2">
-          <span>Rows per page</span>
-          <select
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700"
-            value={safePagination.pageSize}
-            onChange={(event) => handlePageSizeChange(Number(event.target.value))}
-          >
-            {pageSizeOptions.map((pageSize) => (
-              <option key={pageSize} value={pageSize}>
-                {pageSize}
-              </option>
-            ))}
-          </select>
-        </label>
+      {shouldRenderPagination ? (
+        <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <label className="flex items-center gap-2">
+              <span>Rows per page</span>
+              <select
+                aria-label="Rows per page"
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700"
+                value={safePagination.pageSize}
+                onChange={(event) =>
+                  handlePageSizeChange(Number(event.target.value))
+                }
+              >
+                {pageSizeOptions.map((pageSize) => (
+                  <option key={pageSize} value={pageSize}>
+                    {pageSize}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <div className="flex items-center gap-3">
-          <span>
-            Page {safePagination.pageIndex + 1} of {pageCount}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={safePagination.pageIndex === 0}
-              onClick={() =>
-                handlePaginationChange({
-                  ...safePagination,
-                  pageIndex: safePagination.pageIndex - 1,
-                })
-              }
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={safePagination.pageIndex >= pageCount - 1}
-              onClick={() =>
-                handlePaginationChange({
-                  ...safePagination,
-                  pageIndex: safePagination.pageIndex + 1,
-                })
-              }
-            >
-              Next
-            </button>
+            <span aria-live="polite">
+              {firstVisibleRowNumber}-{lastVisibleRowNumber} of {sortedData.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span aria-live="polite">
+              Page {safePagination.pageIndex + 1} of {pageCount}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Go to first page"
+                className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={safePagination.pageIndex === 0}
+                onClick={() =>
+                  handlePaginationChange({
+                    ...safePagination,
+                    pageIndex: 0,
+                  })
+                }
+              >
+                First
+              </button>
+              <button
+                type="button"
+                aria-label="Go to previous page"
+                className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={safePagination.pageIndex === 0}
+                onClick={() =>
+                  handlePaginationChange({
+                    ...safePagination,
+                    pageIndex: safePagination.pageIndex - 1,
+                  })
+                }
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                aria-label="Go to next page"
+                className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={safePagination.pageIndex >= pageCount - 1}
+                onClick={() =>
+                  handlePaginationChange({
+                    ...safePagination,
+                    pageIndex: safePagination.pageIndex + 1,
+                  })
+                }
+              >
+                Next
+              </button>
+              <button
+                type="button"
+                aria-label="Go to last page"
+                className="rounded-md border border-gray-300 px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={safePagination.pageIndex >= pageCount - 1}
+                onClick={() =>
+                  handlePaginationChange({
+                    ...safePagination,
+                    pageIndex: pageCount - 1,
+                  })
+                }
+              >
+                Last
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -402,3 +454,4 @@ function getAriaSort(
 
   return sort.direction === "asc" ? "ascending" : "descending";
 }
+
