@@ -63,6 +63,7 @@ export function UsersTable({ users }: { users: User[] }) {
       globalFilterPlaceholder="Search users..."
       enableRowSelection
       showPagination
+      enableColumnResizing
       renderEmpty={() => <span>No users yet.</span>}
       ariaLabel="Users table"
     />
@@ -140,3 +141,4 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
+

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DataGrid } from "./DataGrid";
@@ -241,6 +241,51 @@ describe("DataGrid", () => {
     expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeChecked();
   });
 
+
+  it("resizes columns with keyboard controls", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        defaultColumnSizing={{ name: 180 }}
+        enableColumnResizing
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    const resizeHandle = screen.getByRole("button", {
+      name: "Resize Name column",
+    });
+    const nameHeader = resizeHandle.closest("th");
+
+    expect(nameHeader).toHaveStyle({ width: "180px" });
+
+    fireEvent.keyDown(resizeHandle, { key: "ArrowRight" });
+
+    expect(nameHeader).toHaveStyle({ width: "190px" });
+  });
+
+  it("calls controlled column sizing changes", () => {
+    const onColumnSizingChange = vi.fn();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnSizing={{ name: 180 }}
+        enableColumnResizing
+        onColumnSizingChange={onColumnSizingChange}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Resize Name column" }),
+      { key: "ArrowLeft" },
+    );
+
+    expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 170 });
+  });
   it("calls controlled state change handlers", async () => {
     const user = userEvent.setup();
     const onSortChange = vi.fn();
@@ -283,5 +328,6 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
+
 
 

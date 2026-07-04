@@ -177,6 +177,27 @@ const [pagination, setPagination] = useState<PaginationState>({
 
 The pagination footer includes row range text, page text, and first/previous/next/last controls. It hides automatically when the data fits on one page and there is only one page-size option.
 
+## Column Resizing
+
+Enable column resizing to render resize handles on column headers. Widths are stored by column id.
+
+```tsx
+const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({
+  name: 240,
+});
+
+<DataGrid
+  columns={columns}
+  data={users}
+  enableColumnResizing
+  columnSizing={columnSizing}
+  onColumnSizingChange={setColumnSizing}
+  minColumnWidth={80}
+/>;
+```
+
+Column sizing falls back to `column.width` when no sizing state exists for a column. Resize handles support pointer dragging and keyboard resizing with `ArrowLeft` and `ArrowRight`.
+
 ## Row Selection
 
 ```tsx
@@ -266,6 +287,11 @@ DataGrid includes:
 | `selectedRowIds` | `RowId[]` | Controlled selected row ids. |
 | `onRowSelectionChange` | `(selectedRowIds: RowId[]) => void` | Selection change callback. |
 | `ariaLabel` | `string` | Accessible table label. |
+| `enableColumnResizing` | `boolean` | Adds resize handles to column headers. |
+| `defaultColumnSizing` | `ColumnSizingState` | Initial uncontrolled column widths. |
+| `columnSizing` | `ColumnSizingState` | Controlled column widths. |
+| `onColumnSizingChange` | `(columnSizing: ColumnSizingState) => void` | Column sizing change callback. |
+| `minColumnWidth` | `number` | Minimum column width in pixels. |
 
 ## State Types
 
@@ -285,6 +311,8 @@ type FilterState = {
 };
 
 type RowId = string | number;
+
+type ColumnSizingState = Record<string, number>;
 ```
 
 ## Testing
@@ -297,3 +325,4 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
+

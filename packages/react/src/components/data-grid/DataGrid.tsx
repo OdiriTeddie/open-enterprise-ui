@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Column,
+  ColumnSizingState,
   DataGridProps,
   FilterState,
   PaginationState,
@@ -29,6 +30,9 @@ const DEFAULT_PAGINATION: PaginationState = {
   pageSize: 10,
 };
 
+const DEFAULT_MIN_COLUMN_WIDTH = 80;
+const COLUMN_RESIZE_KEYBOARD_STEP = 10;
+
 export function DataGrid<T>({
   columns,
   data,
@@ -56,6 +60,11 @@ export function DataGrid<T>({
   selectedRowIds,
   onRowSelectionChange,
   ariaLabel = "Data grid",
+  enableColumnResizing = false,
+  defaultColumnSizing = {},
+  columnSizing,
+  onColumnSizingChange,
+  minColumnWidth = DEFAULT_MIN_COLUMN_WIDTH,
 }: DataGridProps<T>) {
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort,
@@ -66,12 +75,16 @@ export function DataGrid<T>({
     useState<FilterState>(defaultFilter);
   const [internalSelectedRowIds, setInternalSelectedRowIds] =
     useState<RowId[]>(defaultSelectedRowIds);
+  const [internalColumnSizing, setInternalColumnSizing] =
+    useState<ColumnSizingState>(defaultColumnSizing);
   const activeSort = sort === undefined ? internalSort : sort;
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
   const activeFilter = filter === undefined ? internalFilter : filter;
   const activeSelectedRowIds =
     selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
+  const activeColumnSizing =
+    columnSizing === undefined ? internalColumnSizing : columnSizing;
   const selectedRowIdSet = useMemo(
     () => new Set(activeSelectedRowIds),
     [activeSelectedRowIds],
@@ -213,6 +226,87 @@ export function DataGrid<T>({
     handleSelectedRowIdsChange(Array.from(nextSelectedRowIdSet));
   }
 
+  function handleColumnSizingChange(nextColumnSizing: ColumnSizingState) {
+    if (columnSizing === undefined) {
+      setInternalColumnSizing(nextColumnSizing);
+    }
+
+    onColumnSizingChange?.(nextColumnSizing);
+  }
+
+  function resizeColumn(column: Column<T>, nextWidth: number) {
+    const columnId = getColumnId(column);
+    const clampedWidth = Math.max(minColumnWidth, Math.round(nextWidth));
+
+    handleColumnSizingChange({
+      ...activeColumnSizing,
+      [columnId]: clampedWidth,
+    });
+  }
+
+  function getColumnResizeStartWidth(
+    column: Column<T>,
+    fallbackWidth: number,
+  ) {
+    const columnId = getColumnId(column);
+    const sizedWidth = activeColumnSizing[columnId];
+
+    if (typeof sizedWidth === "number") {
+      return sizedWidth;
+    }
+
+    if (typeof column.width === "number") {
+      return column.width;
+    }
+
+    return Math.max(minColumnWidth, fallbackWidth);
+  }
+
+  function handleColumnResizePointerDown(
+    event: React.PointerEvent<HTMLButtonElement>,
+    column: Column<T>,
+  ) {
+    event.preventDefault();
+
+    const startX = event.clientX;
+    const startWidth = getColumnResizeStartWidth(
+      column,
+      event.currentTarget.parentElement?.getBoundingClientRect().width ??
+        minColumnWidth,
+    );
+
+    function handlePointerMove(pointerEvent: PointerEvent) {
+      resizeColumn(column, startWidth + pointerEvent.clientX - startX);
+    }
+
+    function handlePointerUp() {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+    }
+
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
+  }
+
+  function handleColumnResizeKeyDown(
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    column: Column<T>,
+  ) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const currentWidth = getColumnResizeStartWidth(column, minColumnWidth);
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+
+    resizeColumn(
+      column,
+      currentWidth + direction * COLUMN_RESIZE_KEYBOARD_STEP,
+    );
+  }
+
   if (loading) {
     return (
       <div className="p-4 text-sm text-gray-500" role="status" aria-live="polite">
@@ -259,8 +353,8 @@ export function DataGrid<T>({
               {columns.map((column) => (
                 <th
                   key={getColumnId(column)}
-                  className={`px-4 py-3 font-medium text-gray-700 ${getAlignClass(column)}`}
-                  style={getColumnStyle(column)}
+                  className={`relative px-4 py-3 font-medium text-gray-700 ${getAlignClass(column)}`}
+                  style={getResolvedColumnStyle(column, activeColumnSizing)}
                   aria-sort={getAriaSort(getColumnId(column), activeSort)}
                   scope="col"
                 >
@@ -279,6 +373,18 @@ export function DataGrid<T>({
                   ) : (
                     column.header
                   )}
+                  {enableColumnResizing ? (
+                    <button
+                      type="button"
+                      aria-label={`Resize ${getColumnHeaderLabel(column)} column`}
+                      aria-orientation="vertical"
+                      className="absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none border-r border-transparent outline-none focus:border-gray-500"
+                      onKeyDown={(event) => handleColumnResizeKeyDown(event, column)}
+                      onPointerDown={(event) =>
+                        handleColumnResizePointerDown(event, column)
+                      }
+                    />
+                  ) : null}
                 </th>
               ))}
             </tr>
@@ -325,7 +431,7 @@ export function DataGrid<T>({
                       <td
                         key={getColumnId(column)}
                         className={`px-4 py-3 text-gray-700 ${getAlignClass(column)}`}
-                        style={getColumnStyle(column)}
+                        style={getResolvedColumnStyle(column, activeColumnSizing)}
                       >
                         {column.cell
                           ? column.cell({
@@ -442,6 +548,19 @@ export function DataGrid<T>({
   );
 }
 
+function getResolvedColumnStyle<T>(
+  column: Column<T>,
+  columnSizing: ColumnSizingState,
+) {
+  const columnId = getColumnId(column);
+  const sizedWidth = columnSizing[columnId];
+
+  if (typeof sizedWidth === "number") {
+    return { width: `${sizedWidth}px` };
+  }
+
+  return getColumnStyle(column);
+}
 function SelectAllCheckbox({
   checked,
   disabled,
@@ -527,3 +646,7 @@ function getAriaSort(
 
   return sort.direction === "asc" ? "ascending" : "descending";
 }
+
+
+
+

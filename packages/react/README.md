@@ -49,7 +49,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Typed column definitions.
 - Accessor keys and accessor functions.
 - Custom cell rendering.
-- Column alignment and widths.
+- Column alignment, widths, and resizing.
 - Controlled and uncontrolled filtering.
 - Controlled and uncontrolled sorting.
 - Controlled and uncontrolled pagination with first/previous/next/last controls.
@@ -72,3 +72,4 @@ pnpm --filter @open-enterprise-ui/react lint
 pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
+
