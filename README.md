@@ -64,6 +64,7 @@ export function UsersTable({ users }: { users: User[] }) {
       enableRowSelection
       showPagination
       enableColumnResizing
+      enableColumnVisibility
       renderEmpty={() => <span>No users yet.</span>}
       ariaLabel="Users table"
     />
@@ -141,4 +142,5 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
+
 

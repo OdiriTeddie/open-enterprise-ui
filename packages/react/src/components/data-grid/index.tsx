@@ -43,6 +43,7 @@ export function DataGridExample() {
       pageSizeOptions={[5, 10, 25]}
       enableRowSelection
       enableColumnResizing
+      enableColumnVisibility
     />
   );
 }
@@ -53,6 +54,7 @@ export type {
   Column,
   ColumnAlign,
   ColumnSizingState,
+  ColumnVisibilityState,
   DataGridProps,
   PaginationState,
   FilterState,
@@ -60,6 +62,8 @@ export type {
   SortDirection,
   SortState,
 } from "./types";
+
+
 
 
 

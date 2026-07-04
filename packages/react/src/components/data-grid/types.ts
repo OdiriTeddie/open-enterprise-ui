@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 export type ColumnAlign = "left" | "center" | "right";
 export type RowId = string | number;
 export type ColumnSizingState = Record<string, number>;
+export type ColumnVisibilityState = Record<string, boolean>;
 export type SortDirection = "asc" | "desc";
 
 export type SortState = {
@@ -74,7 +75,13 @@ export type DataGridProps<T> = {
   columnSizing?: ColumnSizingState;
   onColumnSizingChange?: (columnSizing: ColumnSizingState) => void;
   minColumnWidth?: number;
+  enableColumnVisibility?: boolean;
+  defaultColumnVisibility?: ColumnVisibilityState;
+  columnVisibility?: ColumnVisibilityState;
+  onColumnVisibilityChange?: (columnVisibility: ColumnVisibilityState) => void;
 };
+
+
 
 
 

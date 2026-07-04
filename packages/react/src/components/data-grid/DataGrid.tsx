@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Column,
   ColumnSizingState,
+  ColumnVisibilityState,
   DataGridProps,
   FilterState,
   PaginationState,
@@ -65,6 +66,10 @@ export function DataGrid<T>({
   columnSizing,
   onColumnSizingChange,
   minColumnWidth = DEFAULT_MIN_COLUMN_WIDTH,
+  enableColumnVisibility = false,
+  defaultColumnVisibility = {},
+  columnVisibility,
+  onColumnVisibilityChange,
 }: DataGridProps<T>) {
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort,
@@ -77,6 +82,8 @@ export function DataGrid<T>({
     useState<RowId[]>(defaultSelectedRowIds);
   const [internalColumnSizing, setInternalColumnSizing] =
     useState<ColumnSizingState>(defaultColumnSizing);
+  const [internalColumnVisibility, setInternalColumnVisibility] =
+    useState<ColumnVisibilityState>(defaultColumnVisibility);
   const activeSort = sort === undefined ? internalSort : sort;
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
@@ -85,6 +92,17 @@ export function DataGrid<T>({
     selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
   const activeColumnSizing =
     columnSizing === undefined ? internalColumnSizing : columnSizing;
+  const activeColumnVisibility =
+    columnVisibility === undefined
+      ? internalColumnVisibility
+      : columnVisibility;
+  const renderedColumns = useMemo(
+    () =>
+      columns.filter(
+        (column) => activeColumnVisibility[getColumnId(column)] !== false,
+      ),
+    [activeColumnVisibility, columns],
+  );
   const selectedRowIdSet = useMemo(
     () => new Set(activeSelectedRowIds),
     [activeSelectedRowIds],
@@ -133,7 +151,7 @@ export function DataGrid<T>({
     selectedVisibleRowCount > 0 && !areAllVisibleRowsSelected;
   const hasRows = data.length > 0;
   const hasVisibleRows = paginatedData.length > 0;
-  const emptyColumnSpan = columns.length + (enableRowSelection ? 1 : 0);
+  const emptyColumnSpan = renderedColumns.length + (enableRowSelection ? 1 : 0);
   const firstVisibleRowNumber = hasVisibleRows
     ? safePagination.pageIndex * safePagination.pageSize + 1
     : 0;
@@ -307,6 +325,23 @@ export function DataGrid<T>({
     );
   }
 
+  function handleColumnVisibilityChange(
+    nextColumnVisibility: ColumnVisibilityState,
+  ) {
+    if (columnVisibility === undefined) {
+      setInternalColumnVisibility(nextColumnVisibility);
+    }
+
+    onColumnVisibilityChange?.(nextColumnVisibility);
+  }
+
+  function setColumnVisible(column: Column<T>, visible: boolean) {
+    handleColumnVisibilityChange({
+      ...activeColumnVisibility,
+      [getColumnId(column)]: visible,
+    });
+  }
+
   if (loading) {
     return (
       <div className="p-4 text-sm text-gray-500" role="status" aria-live="polite">
@@ -334,6 +369,28 @@ export function DataGrid<T>({
         </div>
       ) : null}
 
+      {enableColumnVisibility ? (
+        <div className="flex flex-wrap gap-3 border-b border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+          {columns.map((column) => {
+            const columnId = getColumnId(column);
+
+            return (
+              <label key={columnId} className="flex items-center gap-2">
+                <input
+                  checked={activeColumnVisibility[columnId] !== false}
+                  className="h-4 w-4 rounded border-gray-300"
+                  type="checkbox"
+                  onChange={(event) =>
+                    setColumnVisible(column, event.target.checked)
+                  }
+                />
+                <span>{getColumnHeaderLabel(column)}</span>
+              </label>
+            );
+          })}
+        </div>
+      ) : null}
+
       <div className="overflow-x-auto">
         <table aria-label={ariaLabel} className="w-full border-collapse text-sm">
           <thead className="bg-gray-50">
@@ -350,7 +407,7 @@ export function DataGrid<T>({
                   />
                 </th>
               ) : null}
-              {columns.map((column) => (
+              {renderedColumns.map((column) => (
                 <th
                   key={getColumnId(column)}
                   className={`relative px-4 py-3 font-medium text-gray-700 ${getAlignClass(column)}`}
@@ -424,7 +481,7 @@ export function DataGrid<T>({
                       />
                     </td>
                   ) : null}
-                  {columns.map((column) => {
+                  {renderedColumns.map((column) => {
                     const value = getColumnValue(row, column);
 
                     return (
@@ -646,6 +703,8 @@ function getAriaSort(
 
   return sort.direction === "asc" ? "ascending" : "descending";
 }
+
+
 
 
 

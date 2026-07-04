@@ -177,6 +177,26 @@ const [pagination, setPagination] = useState<PaginationState>({
 
 The pagination footer includes row range text, page text, and first/previous/next/last controls. It hides automatically when the data fits on one page and there is only one page-size option.
 
+## Column Visibility
+
+Column visibility can be configured up front or controlled externally. The built-in visibility controls are enabled with `enableColumnVisibility`.
+
+```tsx
+const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({
+  role: false,
+});
+
+<DataGrid
+  columns={columns}
+  data={users}
+  enableColumnVisibility
+  columnVisibility={columnVisibility}
+  onColumnVisibilityChange={setColumnVisibility}
+/>;
+```
+
+Hidden columns are not rendered in the header or body, but the original column definitions remain available for state keyed by column id.
+
 ## Column Resizing
 
 Enable column resizing to render resize handles on column headers. Widths are stored by column id.
@@ -288,6 +308,10 @@ DataGrid includes:
 | `onRowSelectionChange` | `(selectedRowIds: RowId[]) => void` | Selection change callback. |
 | `ariaLabel` | `string` | Accessible table label. |
 | `enableColumnResizing` | `boolean` | Adds resize handles to column headers. |
+| `enableColumnVisibility` | `boolean` | Shows built-in column visibility controls. |
+| `defaultColumnVisibility` | `ColumnVisibilityState` | Initial uncontrolled column visibility. |
+| `columnVisibility` | `ColumnVisibilityState` | Controlled column visibility. |
+| `onColumnVisibilityChange` | `(columnVisibility: ColumnVisibilityState) => void` | Column visibility change callback. |
 | `defaultColumnSizing` | `ColumnSizingState` | Initial uncontrolled column widths. |
 | `columnSizing` | `ColumnSizingState` | Controlled column widths. |
 | `onColumnSizingChange` | `(columnSizing: ColumnSizingState) => void` | Column sizing change callback. |
@@ -313,6 +337,8 @@ type FilterState = {
 type RowId = string | number;
 
 type ColumnSizingState = Record<string, number>;
+
+type ColumnVisibilityState = Record<string, boolean>;
 ```
 
 ## Testing
@@ -325,4 +351,5 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
 

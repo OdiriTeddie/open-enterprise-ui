@@ -242,6 +242,43 @@ describe("DataGrid", () => {
   });
 
 
+
+  it("hides columns from default visibility state", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        defaultColumnVisibility={{ role: false }}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "Role" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Engineer")).not.toBeInTheDocument();
+  });
+
+  it("toggles column visibility and calls controlled visibility changes", async () => {
+    const user = userEvent.setup();
+    const onColumnVisibilityChange = vi.fn();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnVisibility={{ role: true }}
+        enableColumnVisibility
+        onColumnVisibilityChange={onColumnVisibilityChange}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: "Role" }));
+
+    expect(onColumnVisibilityChange).toHaveBeenCalledWith({ role: false });
+  });
   it("resizes columns with keyboard controls", () => {
     render(
       <DataGrid
@@ -328,6 +365,7 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
+
 
 
 

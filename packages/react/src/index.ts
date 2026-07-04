@@ -4,6 +4,7 @@ export type {
   Column,
   ColumnAlign,
   ColumnSizingState,
+  ColumnVisibilityState,
   DataGridProps,
   FilterState,
   PaginationState,
@@ -11,6 +12,7 @@ export type {
   SortDirection,
   SortState,
 } from "./components/data-grid";
+
 
 
 
