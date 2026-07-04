@@ -64,10 +64,15 @@ export function UsersTable({ users }: { users: User[] }) {
       enableRowSelection
       showPagination
       renderEmpty={() => <span>No users yet.</span>}
+      ariaLabel="Users table"
     />
   );
 }
 ```
+
+## Documentation
+
+- [DataGrid API](./docs/data-grid.md)
 
 ## Repository Structure
 
@@ -112,7 +117,7 @@ pnpm --filter @open-enterprise-ui/react dev
 
 ## Roadmap
 
-- DataGrid column resizing, richer pagination controls, and server-side workflows.
+- DataGrid column resizing, server-side workflows, and richer docs examples.
 - Form controls for enterprise workflows.
 - Navigation, tabs, modals, and command surfaces.
 - Dashboard and data-display components.
@@ -135,9 +140,3 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
-
-
-
-
-
-

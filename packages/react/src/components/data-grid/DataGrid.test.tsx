@@ -128,6 +128,36 @@ describe("DataGrid", () => {
   });
 
 
+
+  it("exposes accessible labels and status regions", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataGrid
+        ariaLabel="Users table"
+        columns={columns}
+        data={users}
+        emptyMessage="No users found."
+        getRowId={(row) => row.id}
+        defaultPagination={{ pageIndex: 0, pageSize: 2 }}
+        pageSizeOptions={[2, 3]}
+        enableRowSelection
+      />,
+    );
+
+    expect(screen.getByRole("table", { name: "Users table" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+
+    expect(
+      screen.getByRole("checkbox", { name: "Select all visible rows" }),
+    ).toHaveAttribute("aria-checked", "mixed");
+
+    await user.type(screen.getByRole("searchbox"), "no-match");
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No matching rows found.",
+    );
+  });
   it("renders custom loading, empty, and no-results states", async () => {
     const user = userEvent.setup();
     const { rerender } = render(
@@ -253,4 +283,5 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
+
 

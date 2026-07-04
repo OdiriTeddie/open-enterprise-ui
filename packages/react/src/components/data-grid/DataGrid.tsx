@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Column,
   DataGridProps,
@@ -55,6 +55,7 @@ export function DataGrid<T>({
   defaultSelectedRowIds = [],
   selectedRowIds,
   onRowSelectionChange,
+  ariaLabel = "Data grid",
 }: DataGridProps<T>) {
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort,
@@ -115,6 +116,8 @@ export function DataGrid<T>({
   ).length;
   const areAllVisibleRowsSelected =
     visibleRowIds.length > 0 && selectedVisibleRowCount === visibleRowIds.length;
+  const areSomeVisibleRowsSelected =
+    selectedVisibleRowCount > 0 && !areAllVisibleRowsSelected;
   const hasRows = data.length > 0;
   const hasVisibleRows = paginatedData.length > 0;
   const emptyColumnSpan = columns.length + (enableRowSelection ? 1 : 0);
@@ -212,7 +215,7 @@ export function DataGrid<T>({
 
   if (loading) {
     return (
-      <div className="p-4 text-sm text-gray-500">
+      <div className="p-4 text-sm text-gray-500" role="status" aria-live="polite">
         {renderLoading ? renderLoading() : "Loading...."}
       </div>
     );
@@ -238,19 +241,17 @@ export function DataGrid<T>({
       ) : null}
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table aria-label={ariaLabel} className="w-full border-collapse text-sm">
           <thead className="bg-gray-50">
             <tr>
               {enableRowSelection ? (
                 <th className="w-12 px-4 py-3" scope="col">
-                  <input
-                    aria-label="Select all visible rows"
+                  <SelectAllCheckbox
                     checked={areAllVisibleRowsSelected}
-                    className="h-4 w-4 rounded border-gray-300"
                     disabled={!hasVisibleRows}
-                    type="checkbox"
-                    onChange={(event) =>
-                      handleVisibleRowsSelectionChange(event.target.checked)
+                    indeterminate={areSomeVisibleRowsSelected}
+                    onChange={(checked) =>
+                      handleVisibleRowsSelectionChange(checked)
                     }
                   />
                 </th>
@@ -266,6 +267,7 @@ export function DataGrid<T>({
                   {column.sortable ? (
                     <button
                       type="button"
+                      aria-label={getSortButtonLabel(column, activeSort)}
                       className="inline-flex items-center gap-1 font-medium text-inherit"
                       onClick={() => handleSort(column)}
                     >
@@ -289,13 +291,15 @@ export function DataGrid<T>({
                   colSpan={emptyColumnSpan}
                   className="px-4 py-6 text-center text-gray-500"
                 >
-                  {hasRows
-                    ? renderNoResults
-                      ? renderNoResults()
-                      : "No matching rows found."
-                    : renderEmpty
-                      ? renderEmpty()
-                      : emptyMessage}
+                  <div role="status" aria-live="polite">
+                    {hasRows
+                      ? renderNoResults
+                        ? renderNoResults()
+                        : "No matching rows found."
+                      : renderEmpty
+                        ? renderEmpty()
+                        : emptyMessage}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -369,7 +373,7 @@ export function DataGrid<T>({
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <nav aria-label="Pagination" className="flex items-center gap-3">
             <span aria-live="polite">
               Page {safePagination.pageIndex + 1} of {pageCount}
             </span>
@@ -431,10 +435,43 @@ export function DataGrid<T>({
                 Last
               </button>
             </div>
-          </div>
+          </nav>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function SelectAllCheckbox({
+  checked,
+  disabled,
+  indeterminate,
+  onChange,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  indeterminate: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  return (
+    <input
+      ref={checkboxRef}
+      aria-checked={indeterminate ? "mixed" : checked}
+      aria-label="Select all visible rows"
+      checked={checked}
+      className="h-4 w-4 rounded border-gray-300"
+      disabled={disabled}
+      type="checkbox"
+      onChange={(event) => onChange(event.target.checked)}
+    />
   );
 }
 
@@ -457,6 +494,29 @@ function getSortIndicator(
   return sort.direction === "asc" ? "ASC" : "DESC";
 }
 
+function getSortButtonLabel<T>(column: Column<T>, sort: SortState | null) {
+  const columnId = getColumnId(column);
+  const headerLabel = getColumnHeaderLabel(column);
+
+  if (sort?.columnId !== columnId) {
+    return `Sort by ${headerLabel} ascending`;
+  }
+
+  if (sort.direction === "asc") {
+    return `Sort by ${headerLabel} descending`;
+  }
+
+  return `Clear sort for ${headerLabel}`;
+}
+
+function getColumnHeaderLabel<T>(column: Column<T>) {
+  if (typeof column.header === "string" || typeof column.header === "number") {
+    return String(column.header);
+  }
+
+  return getColumnId(column);
+}
+
 function getAriaSort(
   columnId: string,
   sort: DataGridProps<unknown>["sort"],
@@ -467,5 +527,3 @@ function getAriaSort(
 
   return sort.direction === "asc" ? "ascending" : "descending";
 }
-
-

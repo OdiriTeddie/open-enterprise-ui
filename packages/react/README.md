@@ -38,6 +38,7 @@ export function UsersTable({ users }: { users: User[] }) {
       globalFilterPlaceholder="Search users..."
       enableRowSelection
       showPagination
+      ariaLabel="Users table"
     />
   );
 }
@@ -54,6 +55,11 @@ export function UsersTable({ users }: { users: User[] }) {
 - Controlled and uncontrolled pagination with first/previous/next/last controls.
 - Controlled and uncontrolled row selection.
 - Custom loading, empty, and no-results render slots.
+- Accessible table, sorting, selection, and pagination semantics.
+
+## Documentation
+
+- [DataGrid API](../../docs/data-grid.md)
 
 ## Development
 
@@ -66,8 +72,3 @@ pnpm --filter @open-enterprise-ui/react lint
 pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
-
-
-
-
-

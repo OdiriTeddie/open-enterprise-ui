@@ -67,6 +67,8 @@ export type DataGridProps<T> = {
   defaultSelectedRowIds?: RowId[];
   selectedRowIds?: RowId[];
   onRowSelectionChange?: (selectedRowIds: RowId[]) => void;
+  ariaLabel?: string;
 };
+
 
 
