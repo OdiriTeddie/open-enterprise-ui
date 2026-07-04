@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 import type {
   Column,
   DataGridProps,
+  FilterState,
   PaginationState,
   SortState,
 } from "./types";
 import {
   clampPageIndex,
+  filterRows,
   getAlignClass,
   getColumnId,
   getColumnStyle,
@@ -16,6 +18,10 @@ import {
   paginateRows,
   sortRows,
 } from "./utils";
+
+const DEFAULT_FILTER: FilterState = {
+  global: "",
+};
 
 const DEFAULT_PAGINATION: PaginationState = {
   pageIndex: 0,
@@ -35,18 +41,30 @@ export function DataGrid<T>({
   pagination,
   onPaginationChange,
   pageSizeOptions = [10, 25, 50],
+  defaultFilter = DEFAULT_FILTER,
+  filter,
+  onFilterChange,
+  showGlobalFilter = true,
+  globalFilterPlaceholder = "Search rows...",
 }: DataGridProps<T>) {
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort,
   );
   const [internalPagination, setInternalPagination] =
     useState<PaginationState>(defaultPagination);
+  const [internalFilter, setInternalFilter] =
+    useState<FilterState>(defaultFilter);
   const activeSort = sort === undefined ? internalSort : sort;
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
+  const activeFilter = filter === undefined ? internalFilter : filter;
+  const filteredData = useMemo(
+    () => filterRows(data, columns, activeFilter),
+    [activeFilter, columns, data],
+  );
   const sortedData = useMemo(
-    () => sortRows(data, columns, activeSort),
-    [activeSort, columns, data],
+    () => sortRows(filteredData, columns, activeSort),
+    [activeSort, columns, filteredData],
   );
   const pageCount = getPageCount(sortedData.length, activePagination.pageSize);
   const safePagination = useMemo(
@@ -60,6 +78,8 @@ export function DataGrid<T>({
     () => paginateRows(sortedData, safePagination),
     [safePagination, sortedData],
   );
+  const hasRows = data.length > 0;
+  const hasVisibleRows = paginatedData.length > 0;
 
   function handleSort(column: Column<T>) {
     if (!column.sortable) {
@@ -96,12 +116,41 @@ export function DataGrid<T>({
     handlePaginationChange({ pageIndex: 0, pageSize });
   }
 
+  function handleFilterChange(nextFilter: FilterState) {
+    if (filter === undefined) {
+      setInternalFilter(nextFilter);
+    }
+
+    handlePaginationChange({
+      ...safePagination,
+      pageIndex: 0,
+    });
+    onFilterChange?.(nextFilter);
+  }
+
   if (loading) {
     return <div className="p-4 text-sm text-gray-500">Loading....</div>;
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
+      {showGlobalFilter ? (
+        <div className="border-b border-gray-200 bg-white px-4 py-3">
+          <label className="block max-w-sm text-sm text-gray-600">
+            <span className="mb-1 block font-medium text-gray-700">Search</span>
+            <input
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-gray-500"
+              placeholder={globalFilterPlaceholder}
+              type="search"
+              value={activeFilter.global}
+              onChange={(event) =>
+                handleFilterChange({ global: event.target.value })
+              }
+            />
+          </label>
+        </div>
+      ) : null}
+
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead className="bg-gray-50">
@@ -134,13 +183,13 @@ export function DataGrid<T>({
           </thead>
 
           <tbody>
-            {data.length === 0 ? (
+            {!hasVisibleRows ? (
               <tr>
                 <td
                   colSpan={columns.length}
                   className="px-4 py-6 text-center text-gray-500"
                 >
-                  {emptyMessage}
+                  {hasRows ? "No matching rows found." : emptyMessage}
                 </td>
               </tr>
             ) : (

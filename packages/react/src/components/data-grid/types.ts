@@ -13,6 +13,10 @@ export type PaginationState = {
   pageSize: number;
 };
 
+export type FilterState = {
+  global: string;
+};
+
 export type CellContext<T, TValue = unknown> = {
   row: T;
   value: TValue;
@@ -32,6 +36,8 @@ export type Column<T, TValue = unknown> = {
   width?: number | string;
   sortable?: boolean;
   sortAccessor?: (row: T) => string | number | Date | null | undefined;
+  filterable?: boolean;
+  filterAccessor?: (row: T) => string | number | boolean | Date | null | undefined;
 };
 
 export type DataGridProps<T> = {
@@ -47,4 +53,9 @@ export type DataGridProps<T> = {
   pagination?: PaginationState;
   onPaginationChange?: (pagination: PaginationState) => void;
   pageSizeOptions?: number[];
+  defaultFilter?: FilterState;
+  filter?: FilterState;
+  onFilterChange?: (filter: FilterState) => void;
+  showGlobalFilter?: boolean;
+  globalFilterPlaceholder?: string;
 };

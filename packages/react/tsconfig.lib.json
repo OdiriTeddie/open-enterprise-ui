@@ -14,5 +14,6 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src/index.ts", "src/components/**/*.ts", "src/components/**/*.tsx"]
+  "include": ["src/index.ts", "src/components/**/*.ts", "src/components/**/*.tsx"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**"]
 }

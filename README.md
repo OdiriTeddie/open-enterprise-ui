@@ -60,6 +60,7 @@ export function UsersTable({ users }: { users: User[] }) {
       getRowId={(user) => user.id}
       defaultPagination={{ pageIndex: 0, pageSize: 10 }}
       pageSizeOptions={[10, 25, 50]}
+      globalFilterPlaceholder="Search users..."
     />
   );
 }
@@ -96,6 +97,7 @@ Run checks:
 ```bash
 pnpm typecheck
 pnpm lint
+pnpm test
 pnpm build
 ```
 
@@ -107,7 +109,7 @@ pnpm --filter @open-enterprise-ui/react dev
 
 ## Roadmap
 
-- DataGrid filtering, selection, column resizing, and server-side workflows.
+- DataGrid selection, column resizing, and server-side workflows.
 - Form controls for enterprise workflows.
 - Navigation, tabs, modals, and command surfaces.
 - Dashboard and data-display components.
@@ -121,6 +123,7 @@ Contributions are welcome. Before opening a pull request, run:
 ```bash
 pnpm typecheck
 pnpm lint
+pnpm test
 pnpm build
 ```
 
@@ -129,4 +132,6 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
+
+
 

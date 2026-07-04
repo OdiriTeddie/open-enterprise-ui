@@ -35,6 +35,7 @@ export function UsersTable({ users }: { users: User[] }) {
       emptyMessage="No users found."
       defaultPagination={{ pageIndex: 0, pageSize: 10 }}
       pageSizeOptions={[10, 25, 50]}
+      globalFilterPlaceholder="Search users..."
     />
   );
 }
@@ -46,6 +47,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Accessor keys and accessor functions.
 - Custom cell rendering.
 - Column alignment and widths.
+- Controlled and uncontrolled filtering.
 - Controlled and uncontrolled sorting.
 - Controlled and uncontrolled pagination.
 
@@ -57,5 +59,8 @@ From the repository root:
 pnpm --filter @open-enterprise-ui/react dev
 pnpm --filter @open-enterprise-ui/react typecheck
 pnpm --filter @open-enterprise-ui/react lint
+pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
+
+
