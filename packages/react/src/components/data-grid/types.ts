@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 export type ColumnAlign = "left" | "center" | "right";
+export type RowId = string | number;
 export type SortDirection = "asc" | "desc";
 
 export type SortState = {
@@ -45,7 +46,7 @@ export type DataGridProps<T> = {
   data: T[];
   loading?: boolean;
   emptyMessage?: string;
-  getRowId?: (row: T, index: number) => string | number;
+  getRowId?: (row: T, index: number) => RowId;
   defaultSort?: SortState | null;
   sort?: SortState | null;
   onSortChange?: (sort: SortState | null) => void;
@@ -58,4 +59,8 @@ export type DataGridProps<T> = {
   onFilterChange?: (filter: FilterState) => void;
   showGlobalFilter?: boolean;
   globalFilterPlaceholder?: string;
+  enableRowSelection?: boolean;
+  defaultSelectedRowIds?: RowId[];
+  selectedRowIds?: RowId[];
+  onRowSelectionChange?: (selectedRowIds: RowId[]) => void;
 };

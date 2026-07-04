@@ -6,7 +6,9 @@ export type {
   DataGridProps,
   FilterState,
   PaginationState,
+  RowId,
   SortDirection,
   SortState,
 } from "./components/data-grid";
+
 

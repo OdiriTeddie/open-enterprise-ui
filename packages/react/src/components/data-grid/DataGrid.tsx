@@ -4,6 +4,7 @@ import type {
   DataGridProps,
   FilterState,
   PaginationState,
+  RowId,
   SortState,
 } from "./types";
 import {
@@ -46,6 +47,10 @@ export function DataGrid<T>({
   onFilterChange,
   showGlobalFilter = true,
   globalFilterPlaceholder = "Search rows...",
+  enableRowSelection = false,
+  defaultSelectedRowIds = [],
+  selectedRowIds,
+  onRowSelectionChange,
 }: DataGridProps<T>) {
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort,
@@ -54,10 +59,18 @@ export function DataGrid<T>({
     useState<PaginationState>(defaultPagination);
   const [internalFilter, setInternalFilter] =
     useState<FilterState>(defaultFilter);
+  const [internalSelectedRowIds, setInternalSelectedRowIds] =
+    useState<RowId[]>(defaultSelectedRowIds);
   const activeSort = sort === undefined ? internalSort : sort;
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
   const activeFilter = filter === undefined ? internalFilter : filter;
+  const activeSelectedRowIds =
+    selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
+  const selectedRowIdSet = useMemo(
+    () => new Set(activeSelectedRowIds),
+    [activeSelectedRowIds],
+  );
   const filteredData = useMemo(
     () => filterRows(data, columns, activeFilter),
     [activeFilter, columns, data],
@@ -78,8 +91,29 @@ export function DataGrid<T>({
     () => paginateRows(sortedData, safePagination),
     [safePagination, sortedData],
   );
+  const visibleRows = useMemo(
+    () =>
+      paginatedData.map((row, rowIndex) => {
+        const rowIndexInData =
+          safePagination.pageIndex * safePagination.pageSize + rowIndex;
+
+        return {
+          row,
+          rowIndex: rowIndexInData,
+          rowId: getResolvedRowId(row, rowIndexInData, getRowId),
+        };
+      }),
+    [getRowId, paginatedData, safePagination],
+  );
+  const visibleRowIds = visibleRows.map((row) => row.rowId);
+  const selectedVisibleRowCount = visibleRowIds.filter((rowId) =>
+    selectedRowIdSet.has(rowId),
+  ).length;
+  const areAllVisibleRowsSelected =
+    visibleRowIds.length > 0 && selectedVisibleRowCount === visibleRowIds.length;
   const hasRows = data.length > 0;
   const hasVisibleRows = paginatedData.length > 0;
+  const emptyColumnSpan = columns.length + (enableRowSelection ? 1 : 0);
 
   function handleSort(column: Column<T>) {
     if (!column.sortable) {
@@ -128,6 +162,40 @@ export function DataGrid<T>({
     onFilterChange?.(nextFilter);
   }
 
+  function handleSelectedRowIdsChange(nextSelectedRowIds: RowId[]) {
+    if (selectedRowIds === undefined) {
+      setInternalSelectedRowIds(nextSelectedRowIds);
+    }
+
+    onRowSelectionChange?.(nextSelectedRowIds);
+  }
+
+  function handleRowSelectionChange(rowId: RowId, checked: boolean) {
+    const nextSelectedRowIdSet = new Set(activeSelectedRowIds);
+
+    if (checked) {
+      nextSelectedRowIdSet.add(rowId);
+    } else {
+      nextSelectedRowIdSet.delete(rowId);
+    }
+
+    handleSelectedRowIdsChange(Array.from(nextSelectedRowIdSet));
+  }
+
+  function handleVisibleRowsSelectionChange(checked: boolean) {
+    const nextSelectedRowIdSet = new Set(activeSelectedRowIds);
+
+    visibleRowIds.forEach((rowId) => {
+      if (checked) {
+        nextSelectedRowIdSet.add(rowId);
+      } else {
+        nextSelectedRowIdSet.delete(rowId);
+      }
+    });
+
+    handleSelectedRowIdsChange(Array.from(nextSelectedRowIdSet));
+  }
+
   if (loading) {
     return <div className="p-4 text-sm text-gray-500">Loading....</div>;
   }
@@ -155,6 +223,20 @@ export function DataGrid<T>({
         <table className="w-full border-collapse text-sm">
           <thead className="bg-gray-50">
             <tr>
+              {enableRowSelection ? (
+                <th className="w-12 px-4 py-3" scope="col">
+                  <input
+                    aria-label="Select all visible rows"
+                    checked={areAllVisibleRowsSelected}
+                    className="h-4 w-4 rounded border-gray-300"
+                    disabled={!hasVisibleRows}
+                    type="checkbox"
+                    onChange={(event) =>
+                      handleVisibleRowsSelectionChange(event.target.checked)
+                    }
+                  />
+                </th>
+              ) : null}
               {columns.map((column) => (
                 <th
                   key={getColumnId(column)}
@@ -186,51 +268,52 @@ export function DataGrid<T>({
             {!hasVisibleRows ? (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={emptyColumnSpan}
                   className="px-4 py-6 text-center text-gray-500"
                 >
                   {hasRows ? "No matching rows found." : emptyMessage}
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row, rowIndex) => {
-                const absoluteRowIndex =
-                  safePagination.pageIndex * safePagination.pageSize + rowIndex;
+              visibleRows.map(({ row, rowId, rowIndex }) => (
+                <tr key={rowId} className="border-t border-gray-200">
+                  {enableRowSelection ? (
+                    <td className="px-4 py-3">
+                      <input
+                        aria-label={`Select row ${rowIndex + 1}`}
+                        checked={selectedRowIdSet.has(rowId)}
+                        className="h-4 w-4 rounded border-gray-300"
+                        type="checkbox"
+                        onChange={(event) =>
+                          handleRowSelectionChange(rowId, event.target.checked)
+                        }
+                      />
+                    </td>
+                  ) : null}
+                  {columns.map((column) => {
+                    const value = getColumnValue(row, column);
 
-                return (
-                  <tr
-                    key={
-                      getRowId
-                        ? getRowId(row, absoluteRowIndex)
-                        : absoluteRowIndex
-                    }
-                    className="border-t border-gray-200"
-                  >
-                    {columns.map((column) => {
-                      const value = getColumnValue(row, column);
-
-                      return (
-                        <td
-                          key={getColumnId(column)}
-                          className={`px-4 py-3 text-gray-700 ${getAlignClass(column)}`}
-                          style={getColumnStyle(column)}
-                        >
-                          {column.cell
-                            ? column.cell({
-                                row,
-                                value,
-                                rowIndex: absoluteRowIndex,
-                                column,
-                              })
-                            : column.render
-                              ? column.render(row)
-                              : String(value ?? "")}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })
+                    return (
+                      <td
+                        key={getColumnId(column)}
+                        className={`px-4 py-3 text-gray-700 ${getAlignClass(column)}`}
+                        style={getColumnStyle(column)}
+                      >
+                        {column.cell
+                          ? column.cell({
+                              row,
+                              value,
+                              rowIndex,
+                              column,
+                            })
+                          : column.render
+                            ? column.render(row)
+                            : String(value ?? "")}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -288,6 +371,14 @@ export function DataGrid<T>({
       </div>
     </div>
   );
+}
+
+function getResolvedRowId<T>(
+  row: T,
+  rowIndex: number,
+  getRowId?: DataGridProps<T>["getRowId"],
+): RowId {
+  return getRowId ? getRowId(row, rowIndex) : rowIndex;
 }
 
 function getSortIndicator(

@@ -36,6 +36,7 @@ export function UsersTable({ users }: { users: User[] }) {
       defaultPagination={{ pageIndex: 0, pageSize: 10 }}
       pageSizeOptions={[10, 25, 50]}
       globalFilterPlaceholder="Search users..."
+      enableRowSelection
     />
   );
 }
@@ -50,6 +51,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Controlled and uncontrolled filtering.
 - Controlled and uncontrolled sorting.
 - Controlled and uncontrolled pagination.
+- Controlled and uncontrolled row selection.
 
 ## Development
 
@@ -62,5 +64,6 @@ pnpm --filter @open-enterprise-ui/react lint
 pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
+
 
 

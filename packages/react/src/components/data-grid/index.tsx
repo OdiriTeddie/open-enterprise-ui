@@ -41,6 +41,7 @@ export function DataGridExample() {
       getRowId={(user) => user.id}
       defaultPagination={{ pageIndex: 0, pageSize: 5 }}
       pageSizeOptions={[5, 10, 25]}
+      enableRowSelection
     />
   );
 }
@@ -53,7 +54,10 @@ export type {
   DataGridProps,
   PaginationState,
   FilterState,
+  RowId,
   SortDirection,
   SortState,
 } from "./types";
+
+
 

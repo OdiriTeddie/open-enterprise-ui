@@ -32,6 +32,7 @@ function renderGrid() {
       getRowId={(user) => user.id}
       defaultPagination={{ pageIndex: 0, pageSize: 2 }}
       pageSizeOptions={[2, 3]}
+      enableRowSelection
     />,
   );
 }
@@ -93,29 +94,83 @@ describe("DataGrid", () => {
     expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
   });
 
+  it("selects and deselects a row", async () => {
+    const user = userEvent.setup();
+    renderGrid();
+
+    const rowCheckbox = screen.getByRole("checkbox", { name: "Select row 1" });
+
+    await user.click(rowCheckbox);
+    expect(rowCheckbox).toBeChecked();
+
+    await user.click(rowCheckbox);
+    expect(rowCheckbox).not.toBeChecked();
+  });
+
+  it("selects and deselects all visible rows", async () => {
+    const user = userEvent.setup();
+    renderGrid();
+
+    const selectAllCheckbox = screen.getByRole("checkbox", {
+      name: "Select all visible rows",
+    });
+
+    await user.click(selectAllCheckbox);
+
+    expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row 2" })).toBeChecked();
+
+    await user.click(selectAllCheckbox);
+
+    expect(
+      screen.getByRole("checkbox", { name: "Select row 1" }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "Select row 2" }),
+    ).not.toBeChecked();
+  });
+
+  it("preserves selected rows across pages", async () => {
+    const user = userEvent.setup();
+    renderGrid();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select row 3" }));
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeChecked();
+  });
+
   it("calls controlled state change handlers", async () => {
     const user = userEvent.setup();
     const onSortChange = vi.fn();
     const onFilterChange = vi.fn();
     const onPaginationChange = vi.fn();
+    const onRowSelectionChange = vi.fn();
 
     render(
       <DataGrid
         columns={columns}
         data={users}
         emptyMessage="No users found."
+        getRowId={(user) => user.id}
         sort={null}
         filter={{ global: "" }}
         pagination={{ pageIndex: 0, pageSize: 2 }}
         onSortChange={onSortChange}
         onFilterChange={onFilterChange}
         onPaginationChange={onPaginationChange}
+        enableRowSelection
+        selectedRowIds={[]}
+        onRowSelectionChange={onRowSelectionChange}
       />,
     );
 
     await user.click(screen.getByRole("button", { name: /name/i }));
     await user.type(screen.getByRole("searchbox"), "ada");
     await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select row 1" }));
 
     expect(onSortChange).toHaveBeenCalledWith({
       columnId: "name",
@@ -126,5 +181,7 @@ describe("DataGrid", () => {
       pageIndex: 1,
       pageSize: 2,
     });
+    expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
+

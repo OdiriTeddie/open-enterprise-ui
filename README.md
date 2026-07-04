@@ -61,6 +61,7 @@ export function UsersTable({ users }: { users: User[] }) {
       defaultPagination={{ pageIndex: 0, pageSize: 10 }}
       pageSizeOptions={[10, 25, 50]}
       globalFilterPlaceholder="Search users..."
+      enableRowSelection
     />
   );
 }
@@ -109,7 +110,7 @@ pnpm --filter @open-enterprise-ui/react dev
 
 ## Roadmap
 
-- DataGrid selection, column resizing, and server-side workflows.
+- DataGrid column resizing, richer pagination controls, and server-side workflows.
 - Form controls for enterprise workflows.
 - Navigation, tabs, modals, and command surfaces.
 - Dashboard and data-display components.
@@ -132,6 +133,7 @@ For larger changes, open an issue first so the API direction can be discussed.
 ## License
 
 MIT
+
 
 
 
