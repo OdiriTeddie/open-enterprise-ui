@@ -1,4 +1,4 @@
-import type { Column, PaginationState, SortState } from "./types";
+import type { Column, FilterState, PaginationState, SortState } from "./types";
 
 export function getColumnId<T>(column: Column<T>): string {
   return String(column.id ?? column.accessorKey ?? column.key);
@@ -37,6 +37,32 @@ export function getColumnStyle<T>(column: Column<T>) {
   return {
     width: typeof column.width === "number" ? `${column.width}px` : column.width,
   };
+}
+
+export function filterRows<T>(
+  rows: T[],
+  columns: Column<T>[],
+  filter: FilterState,
+): T[] {
+  const query = filter.global.trim().toLowerCase();
+
+  if (!query) {
+    return rows;
+  }
+
+  const filterableColumns = columns.filter((column) => column.filterable !== false);
+
+  return rows.filter((row) =>
+    filterableColumns.some((column) => {
+      const value = getFilterValue(row, column);
+
+      if (value == null) {
+        return false;
+      }
+
+      return String(value).toLowerCase().includes(query);
+    }),
+  );
 }
 
 export function getNextSortState<T>(
@@ -101,6 +127,12 @@ export function clampPageIndex(pageIndex: number, pageCount: number): number {
 function getSortValue<T>(row: T, column: Column<T>) {
   return column.sortAccessor
     ? column.sortAccessor(row)
+    : getColumnValue(row, column);
+}
+
+function getFilterValue<T>(row: T, column: Column<T>) {
+  return column.filterAccessor
+    ? column.filterAccessor(row)
     : getColumnValue(row, column);
 }
 

@@ -52,6 +52,8 @@ export type {
   ColumnAlign,
   DataGridProps,
   PaginationState,
+  FilterState,
   SortDirection,
   SortState,
 } from "./types";
+

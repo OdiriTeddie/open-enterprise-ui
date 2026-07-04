@@ -29,6 +29,7 @@
     "build": "pnpm --filter @open-enterprise-ui/react build",
     "typecheck": "pnpm --filter @open-enterprise-ui/react typecheck",
     "lint": "pnpm --filter @open-enterprise-ui/react lint",
+    "test": "pnpm --filter @open-enterprise-ui/react test",
     "preview": "pnpm --filter @open-enterprise-ui/react preview"
   }
 }
