@@ -294,6 +294,86 @@ describe("DataGrid", () => {
     expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeChecked();
   });
 
+
+  it("sorts from the column menu", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        enableColumnMenu
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Name column menu" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Sort descending" }));
+
+    const bodyRows = within(screen.getAllByRole("rowgroup")[1]).getAllByRole(
+      "row",
+    );
+
+    expect(bodyRows[0]).toHaveTextContent("Katherine Johnson");
+  });
+
+  it("hides and pins columns from the column menu", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        enableColumnMenu
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Status column menu" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Hide column" }));
+
+    expect(
+      screen.queryByRole("columnheader", { name: /status/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Role column menu" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Pin left" }));
+
+    const headerCells = screen.getAllByRole("columnheader");
+
+    expect(headerCells[0]).toHaveTextContent("Role");
+  });
+
+  it("resets column width from the column menu", async () => {
+    const user = userEvent.setup();
+    const onColumnSizingChange = vi.fn();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnSizing={{ name: 180 }}
+        enableColumnMenu
+        enableColumnResizing
+        onColumnSizingChange={onColumnSizingChange}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Open Name column menu" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Reset width" }));
+
+    expect(onColumnSizingChange).toHaveBeenCalledWith({});
+  });
+
   it("renders columns in the configured order", () => {
     render(
       <DataGrid

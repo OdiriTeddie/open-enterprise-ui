@@ -91,6 +91,8 @@ export type DataGridProps<T> = {
   columnOrder?: ColumnOrderState;
   defaultColumnPinning?: ColumnPinningState;
   columnPinning?: ColumnPinningState;
+  onColumnPinningChange?: (columnPinning: ColumnPinningState) => void;
+  enableColumnMenu?: boolean;
   enableColumnVisibility?: boolean;
   defaultColumnVisibility?: ColumnVisibilityState;
   columnVisibility?: ColumnVisibilityState;

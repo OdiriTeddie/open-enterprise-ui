@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type {
   Column,
   ColumnOrderState,
@@ -83,6 +83,8 @@ export function DataGrid<T>({
   columnOrder,
   defaultColumnPinning = DEFAULT_COLUMN_PINNING,
   columnPinning,
+  onColumnPinningChange,
+  enableColumnMenu = false,
   enableColumnVisibility = false,
   defaultColumnVisibility = {},
   columnVisibility,
@@ -104,8 +106,9 @@ export function DataGrid<T>({
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<ColumnVisibilityState>(defaultColumnVisibility);
   const [internalColumnOrder] = useState<ColumnOrderState>(defaultColumnOrder);
-  const [internalColumnPinning] =
+  const [internalColumnPinning, setInternalColumnPinning] =
     useState<ColumnPinningState>(defaultColumnPinning);
+  const [openColumnMenuId, setOpenColumnMenuId] = useState<string | null>(null);
   const activeSort = sort === undefined ? internalSort : sort;
   const activeMultiSort = multiSort === undefined ? internalMultiSort : multiSort;
   const activeSortState = enableMultiSort ? activeMultiSort : activeSort;
@@ -326,6 +329,65 @@ export function DataGrid<T>({
     onColumnSizingChange?.(nextColumnSizing);
   }
 
+  function setColumnSort(column: Column<T>, direction: SortState["direction"] | null) {
+    const columnId = getColumnId(column);
+
+    if (enableMultiSort) {
+      const nextSort = direction
+        ? [
+            ...activeMultiSort.filter((item) => item.columnId !== columnId),
+            { columnId, direction },
+          ]
+        : activeMultiSort.filter((item) => item.columnId !== columnId);
+
+      if (multiSort === undefined) {
+        setInternalMultiSort(nextSort);
+      }
+
+      onMultiSortChange?.(nextSort);
+      return;
+    }
+
+    const nextSort = direction ? { columnId, direction } : null;
+
+    if (sort === undefined) {
+      setInternalSort(nextSort);
+    }
+
+    onSortChange?.(nextSort);
+  }
+
+  function handleColumnPinningChange(nextColumnPinning: ColumnPinningState) {
+    if (columnPinning === undefined) {
+      setInternalColumnPinning(nextColumnPinning);
+    }
+
+    onColumnPinningChange?.(nextColumnPinning);
+  }
+
+  function setColumnPinned(column: Column<T>, side: "left" | "right" | null) {
+    const columnId = getColumnId(column);
+    const nextColumnPinning: ColumnPinningState = {
+      left: activeColumnPinning.left.filter((item) => item !== columnId),
+      right: activeColumnPinning.right.filter((item) => item !== columnId),
+    };
+
+    if (side) {
+      nextColumnPinning[side] = [...nextColumnPinning[side], columnId];
+    }
+
+    handleColumnPinningChange(nextColumnPinning);
+  }
+
+  function resetColumnWidth(column: Column<T>) {
+    const columnId = getColumnId(column);
+    const nextColumnSizing = { ...activeColumnSizing };
+
+    delete nextColumnSizing[columnId];
+    handleColumnSizingChange(nextColumnSizing);
+  }
+
+
   function resizeColumn(column: Column<T>, nextWidth: number) {
     const columnId = getColumnId(column);
     const clampedWidth = Math.max(minColumnWidth, Math.round(nextWidth));
@@ -416,6 +478,10 @@ export function DataGrid<T>({
     });
   }
 
+  function closeColumnMenu() {
+    setOpenColumnMenuId(null);
+  }
+
   if (loading) {
     return (
       <div className="p-4 text-sm text-gray-500" role="status" aria-live="polite">
@@ -494,24 +560,89 @@ export function DataGrid<T>({
                   aria-sort={getAriaSort(getColumnId(column), activeSortList)}
                   scope="col"
                 >
-                  {column.sortable ? (
-                    <button
-                      type="button"
-                      aria-label={getSortButtonLabel(column, activeSortList)}
-                      className="inline-flex items-center gap-1 font-medium text-inherit"
-                      onClick={(event) => handleSort(column, event)}
-                    >
+                  <div className="flex items-center justify-between gap-2">
+                    {column.sortable ? (
+                      <button
+                        type="button"
+                        aria-label={getSortButtonLabel(column, activeSortList)}
+                        className="inline-flex items-center gap-1 font-medium text-inherit"
+                        onClick={(event) => handleSort(column, event)}
+                      >
+                        <span>{column.header}</span>
+                        <span aria-hidden="true" className="text-xs text-gray-400">
+                          {getSortIndicator(
+                            getColumnId(column),
+                            activeSortList,
+                          )}
+                        </span>
+                      </button>
+                    ) : (
                       <span>{column.header}</span>
-                      <span aria-hidden="true" className="text-xs text-gray-400">
-                        {getSortIndicator(
-                          getColumnId(column),
-                          activeSortList,
-                        )}
-                      </span>
-                    </button>
-                  ) : (
-                    column.header
-                  )}
+                    )}
+                    {enableColumnMenu ? (
+                      <button
+                        type="button"
+                        aria-expanded={openColumnMenuId === getColumnId(column)}
+                        aria-haspopup="menu"
+                        aria-label={`Open ${getColumnHeaderLabel(column)} column menu`}
+                        className="rounded px-1 text-gray-400 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                        onClick={() =>
+                          setOpenColumnMenuId((currentColumnId) =>
+                            currentColumnId === getColumnId(column)
+                              ? null
+                              : getColumnId(column),
+                          )
+                        }
+                      >
+                        <span aria-hidden="true">...</span>
+                      </button>
+                    ) : null}
+                  </div>
+                  {enableColumnMenu && openColumnMenuId === getColumnId(column) ? (
+                    <ColumnMenu
+                      canHide={renderedColumns.length > 1}
+                      column={column}
+                      enableColumnResizing={enableColumnResizing}
+                      isPinnedLeft={activeColumnPinning.left.includes(
+                        getColumnId(column),
+                      )}
+                      isPinnedRight={activeColumnPinning.right.includes(
+                        getColumnId(column),
+                      )}
+                      onClearSort={() => {
+                        setColumnSort(column, null);
+                        closeColumnMenu();
+                      }}
+                      onHideColumn={() => {
+                        setColumnVisible(column, false);
+                        closeColumnMenu();
+                      }}
+                      onPinLeft={() => {
+                        setColumnPinned(column, "left");
+                        closeColumnMenu();
+                      }}
+                      onPinRight={() => {
+                        setColumnPinned(column, "right");
+                        closeColumnMenu();
+                      }}
+                      onResetWidth={() => {
+                        resetColumnWidth(column);
+                        closeColumnMenu();
+                      }}
+                      onSortAscending={() => {
+                        setColumnSort(column, "asc");
+                        closeColumnMenu();
+                      }}
+                      onSortDescending={() => {
+                        setColumnSort(column, "desc");
+                        closeColumnMenu();
+                      }}
+                      onUnpin={() => {
+                        setColumnPinned(column, null);
+                        closeColumnMenu();
+                      }}
+                    />
+                  ) : null}
                   {enableColumnResizing ? (
                     <button
                       type="button"
@@ -689,6 +820,93 @@ export function DataGrid<T>({
         </div>
       ) : null}
     </div>
+  );
+}
+
+
+function ColumnMenu<T>({
+  canHide,
+  column,
+  enableColumnResizing,
+  isPinnedLeft,
+  isPinnedRight,
+  onClearSort,
+  onHideColumn,
+  onPinLeft,
+  onPinRight,
+  onResetWidth,
+  onSortAscending,
+  onSortDescending,
+  onUnpin,
+}: {
+  canHide: boolean;
+  column: Column<T>;
+  enableColumnResizing: boolean;
+  isPinnedLeft: boolean;
+  isPinnedRight: boolean;
+  onClearSort: () => void;
+  onHideColumn: () => void;
+  onPinLeft: () => void;
+  onPinRight: () => void;
+  onResetWidth: () => void;
+  onSortAscending: () => void;
+  onSortDescending: () => void;
+  onUnpin: () => void;
+}) {
+  return (
+    <div
+      aria-label={`${getColumnHeaderLabel(column)} column actions`}
+      className="absolute right-2 top-10 z-20 min-w-40 rounded-md border border-gray-200 bg-white py-1 text-left text-sm font-normal text-gray-700 shadow-lg"
+      role="menu"
+    >
+      {column.sortable ? (
+        <>
+          <ColumnMenuItem onClick={onSortAscending}>Sort ascending</ColumnMenuItem>
+          <ColumnMenuItem onClick={onSortDescending}>Sort descending</ColumnMenuItem>
+          <ColumnMenuItem onClick={onClearSort}>Clear sort</ColumnMenuItem>
+        </>
+      ) : null}
+      <ColumnMenuItem disabled={!canHide} onClick={onHideColumn}>
+        Hide column
+      </ColumnMenuItem>
+      <ColumnMenuItem disabled={isPinnedLeft} onClick={onPinLeft}>
+        Pin left
+      </ColumnMenuItem>
+      <ColumnMenuItem disabled={isPinnedRight} onClick={onPinRight}>
+        Pin right
+      </ColumnMenuItem>
+      <ColumnMenuItem
+        disabled={!isPinnedLeft && !isPinnedRight}
+        onClick={onUnpin}
+      >
+        Unpin
+      </ColumnMenuItem>
+      {enableColumnResizing ? (
+        <ColumnMenuItem onClick={onResetWidth}>Reset width</ColumnMenuItem>
+      ) : null}
+    </div>
+  );
+}
+
+function ColumnMenuItem({
+  children,
+  disabled = false,
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={disabled}
+      role="menuitem"
+      type="button"
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }
 

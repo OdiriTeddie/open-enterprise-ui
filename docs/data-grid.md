@@ -263,6 +263,22 @@ const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
 
 `defaultColumnPinning` can be used for an initial uncontrolled pinned layout. Sticky offsets use column sizing state first, then numeric `column.width`, then `minColumnWidth`.
 
+
+## Column Menu
+
+Enable `enableColumnMenu` to show a compact action menu in each header. The menu reuses the same state APIs as the rest of the grid: sorting, column visibility, column pinning, and column sizing.
+
+```tsx
+<DataGrid
+  columns={columns}
+  data={users}
+  enableColumnMenu
+  enableColumnResizing
+/>
+```
+
+Menu actions include sorting, hiding a column, pinning left or right, unpinning, and resetting width when column resizing is enabled.
+
 ## Column Visibility
 
 Column visibility can be configured up front or controlled externally. The built-in visibility controls are enabled with `enableColumnVisibility`.
@@ -404,6 +420,8 @@ DataGrid includes:
 | `columnOrder` | `ColumnOrderState` | Controlled column order. Missing columns are appended automatically. |
 | `defaultColumnPinning` | `ColumnPinningState` | Initial uncontrolled left and right pinned columns. |
 | `columnPinning` | `ColumnPinningState` | Controlled left and right pinned columns. |
+| `onColumnPinningChange` | `(columnPinning: ColumnPinningState) => void` | Column pinning change callback. |
+| `enableColumnMenu` | `boolean` | Shows column header action menus for sort, hide, pin, unpin, and width reset actions. |
 | `enableColumnVisibility` | `boolean` | Shows built-in column visibility controls. |
 | `defaultColumnVisibility` | `ColumnVisibilityState` | Initial uncontrolled column visibility. |
 | `columnVisibility` | `ColumnVisibilityState` | Controlled column visibility. |
