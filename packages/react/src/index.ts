@@ -3,6 +3,7 @@ export type {
   CellContext,
   Column,
   ColumnAlign,
+  ColumnOrderState,
   ColumnSizingState,
   ColumnVisibilityState,
   DataGridMode,

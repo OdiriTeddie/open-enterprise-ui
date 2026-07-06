@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Column,
+  ColumnOrderState,
   ColumnSizingState,
   ColumnVisibilityState,
   DataGridProps,
@@ -18,6 +19,7 @@ import {
   getColumnValue,
   getNextSortState,
   getPageCount,
+  orderColumns,
   paginateRows,
   sortRows,
 } from "./utils";
@@ -68,6 +70,8 @@ export function DataGrid<T>({
   columnSizing,
   onColumnSizingChange,
   minColumnWidth = DEFAULT_MIN_COLUMN_WIDTH,
+  defaultColumnOrder = [],
+  columnOrder,
   enableColumnVisibility = false,
   defaultColumnVisibility = {},
   columnVisibility,
@@ -86,6 +90,7 @@ export function DataGrid<T>({
     useState<ColumnSizingState>(defaultColumnSizing);
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<ColumnVisibilityState>(defaultColumnVisibility);
+  const [internalColumnOrder] = useState<ColumnOrderState>(defaultColumnOrder);
   const activeSort = sort === undefined ? internalSort : sort;
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
@@ -98,13 +103,19 @@ export function DataGrid<T>({
     columnVisibility === undefined
       ? internalColumnVisibility
       : columnVisibility;
+  const activeColumnOrder =
+    columnOrder === undefined ? internalColumnOrder : columnOrder;
   const isServerMode = mode === "server";
+  const orderedColumns = useMemo(
+    () => orderColumns(columns, activeColumnOrder),
+    [activeColumnOrder, columns],
+  );
   const renderedColumns = useMemo(
     () =>
-      columns.filter(
+      orderedColumns.filter(
         (column) => activeColumnVisibility[getColumnId(column)] !== false,
       ),
-    [activeColumnVisibility, columns],
+    [activeColumnVisibility, orderedColumns],
   );
   const selectedRowIdSet = useMemo(
     () => new Set(activeSelectedRowIds),

@@ -1,4 +1,10 @@
-import type { Column, FilterState, PaginationState, SortState } from "./types";
+import type {
+  Column,
+  ColumnOrderState,
+  FilterState,
+  PaginationState,
+  SortState,
+} from "./types";
 
 export function getColumnId<T>(column: Column<T>): string {
   return String(column.id ?? column.accessorKey ?? column.key);
@@ -37,6 +43,40 @@ export function getColumnStyle<T>(column: Column<T>) {
   return {
     width: typeof column.width === "number" ? `${column.width}px` : column.width,
   };
+}
+
+export function orderColumns<T>(
+  columns: Column<T>[],
+  columnOrder: ColumnOrderState,
+): Column<T>[] {
+  if (columnOrder.length === 0) {
+    return columns;
+  }
+
+  const columnsById = new Map(
+    columns.map((column) => [getColumnId(column), column] as const),
+  );
+  const orderedColumns: Column<T>[] = [];
+  const orderedColumnIds = new Set<string>();
+
+  columnOrder.forEach((columnId) => {
+    const column = columnsById.get(columnId);
+
+    if (column) {
+      orderedColumns.push(column);
+      orderedColumnIds.add(columnId);
+    }
+  });
+
+  columns.forEach((column) => {
+    const columnId = getColumnId(column);
+
+    if (!orderedColumnIds.has(columnId)) {
+      orderedColumns.push(column);
+    }
+  });
+
+  return orderedColumns;
 }
 
 export function filterRows<T>(

@@ -127,8 +127,6 @@ describe("DataGrid", () => {
     expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
   });
 
-
-
   it("exposes accessible labels and status regions", async () => {
     const user = userEvent.setup();
     render(
@@ -242,6 +240,57 @@ describe("DataGrid", () => {
   });
 
 
+  it("renders columns in the configured order", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnOrder={["status", "name", "role"]}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    const headerCells = screen.getAllByRole("columnheader");
+
+    expect(headerCells[0]).toHaveTextContent("Status");
+    expect(headerCells[1]).toHaveTextContent("Name");
+    expect(headerCells[2]).toHaveTextContent("Role");
+  });
+
+  it("appends columns that are missing from the configured order", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnOrder={["role"]}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    const headerCells = screen.getAllByRole("columnheader");
+
+    expect(headerCells[0]).toHaveTextContent("Role");
+    expect(headerCells[1]).toHaveTextContent("Name");
+    expect(headerCells[2]).toHaveTextContent("Status");
+  });
+
+
+  it("renders columns in the default column order", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        defaultColumnOrder={["role", "status", "name"]}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    const headerCells = screen.getAllByRole("columnheader");
+
+    expect(headerCells[0]).toHaveTextContent("Role");
+    expect(headerCells[1]).toHaveTextContent("Status");
+    expect(headerCells[2]).toHaveTextContent("Name");
+  });
 
   it("hides columns from default visibility state", () => {
     render(
@@ -417,7 +466,5 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
-
-
 
 

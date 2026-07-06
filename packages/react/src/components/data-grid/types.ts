@@ -4,6 +4,7 @@ export type ColumnAlign = "left" | "center" | "right";
 export type RowId = string | number;
 export type ColumnSizingState = Record<string, number>;
 export type ColumnVisibilityState = Record<string, boolean>;
+export type ColumnOrderState = string[];
 export type SortDirection = "asc" | "desc";
 export type DataGridMode = "client" | "server";
 
@@ -78,6 +79,8 @@ export type DataGridProps<T> = {
   columnSizing?: ColumnSizingState;
   onColumnSizingChange?: (columnSizing: ColumnSizingState) => void;
   minColumnWidth?: number;
+  defaultColumnOrder?: ColumnOrderState;
+  columnOrder?: ColumnOrderState;
   enableColumnVisibility?: boolean;
   defaultColumnVisibility?: ColumnVisibilityState;
   columnVisibility?: ColumnVisibilityState;

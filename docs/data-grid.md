@@ -8,6 +8,7 @@
 import {
   DataGrid,
   type Column,
+  type ColumnOrderState,
   type DataGridMode,
   type FilterState,
   type PaginationState,
@@ -207,6 +208,26 @@ const [pagination, setPagination] = useState<PaginationState>({
 
 The pagination footer includes row range text, page text, and first/previous/next/last controls. It hides automatically when the data fits on one page and there is only one page-size option.
 
+## Column Ordering
+
+Use `columnOrder` to render columns by id. Any columns not listed in the order are appended in their original definition order, which keeps newly added columns visible by default.
+
+```tsx
+const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([
+  "status",
+  "name",
+  "role",
+]);
+
+<DataGrid
+  columns={columns}
+  data={users}
+  columnOrder={columnOrder}
+/>
+```
+
+`defaultColumnOrder` can be used when the grid owns the initial order. Use `columnOrder` when the order is controlled by your own toolbar, settings panel, or persisted user preferences.
+
 ## Column Visibility
 
 Column visibility can be configured up front or controlled externally. The built-in visibility controls are enabled with `enableColumnVisibility`.
@@ -340,6 +361,8 @@ DataGrid includes:
 | `onRowSelectionChange` | `(selectedRowIds: RowId[]) => void` | Selection change callback. |
 | `ariaLabel` | `string` | Accessible table label. |
 | `enableColumnResizing` | `boolean` | Adds resize handles to column headers. |
+| `defaultColumnOrder` | `ColumnOrderState` | Initial uncontrolled column order. |
+| `columnOrder` | `ColumnOrderState` | Controlled column order. Missing columns are appended automatically. |
 | `enableColumnVisibility` | `boolean` | Shows built-in column visibility controls. |
 | `defaultColumnVisibility` | `ColumnVisibilityState` | Initial uncontrolled column visibility. |
 | `columnVisibility` | `ColumnVisibilityState` | Controlled column visibility. |
@@ -371,6 +394,8 @@ type FilterState = {
 type RowId = string | number;
 
 type ColumnSizingState = Record<string, number>;
+
+type ColumnOrderState = string[];
 
 type ColumnVisibilityState = Record<string, boolean>;
 ```
