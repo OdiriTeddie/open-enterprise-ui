@@ -64,6 +64,61 @@ describe("DataGrid", () => {
     expect(bodyRows[1]).toHaveTextContent("Grace Hopper");
   });
 
+  it("sorts by multiple columns with shift-click", async () => {
+    const user = userEvent.setup();
+    const multiSortUsers: User[] = [
+      { id: 1, name: "Zoe Reed", role: "Engineer", status: "Active" },
+      { id: 2, name: "Ada Lovelace", role: "Engineer", status: "Invited" },
+      { id: 3, name: "Grace Hopper", role: "Admin", status: "Active" },
+    ];
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={multiSortUsers}
+        enableMultiSort
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /role/i }));
+    fireEvent.click(screen.getByRole("button", { name: /name/i }), {
+      shiftKey: true,
+    });
+
+    const bodyRows = within(screen.getAllByRole("rowgroup")[1]).getAllByRole(
+      "row",
+    );
+
+    expect(bodyRows[0]).toHaveTextContent("Grace Hopper");
+    expect(bodyRows[1]).toHaveTextContent("Ada Lovelace");
+    expect(bodyRows[2]).toHaveTextContent("Zoe Reed");
+    expect(screen.getByText("ASC 1")).toBeInTheDocument();
+    expect(screen.getByText("ASC 2")).toBeInTheDocument();
+  });
+
+  it("calls controlled multi-sort changes", async () => {
+    const user = userEvent.setup();
+    const onMultiSortChange = vi.fn();
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        enableMultiSort
+        multiSort={[]}
+        onMultiSortChange={onMultiSortChange}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /role/i }));
+
+    expect(onMultiSortChange).toHaveBeenCalledWith([
+      { columnId: "role", direction: "asc" },
+    ]);
+  });
+
   it("paginates rows with next and previous controls", async () => {
     const user = userEvent.setup();
     renderGrid();
@@ -239,7 +294,6 @@ describe("DataGrid", () => {
     expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeChecked();
   });
 
-
   it("renders columns in the configured order", () => {
     render(
       <DataGrid
@@ -273,7 +327,6 @@ describe("DataGrid", () => {
     expect(headerCells[1]).toHaveTextContent("Name");
     expect(headerCells[2]).toHaveTextContent("Status");
   });
-
 
   it("renders columns in the default column order", () => {
     render(
@@ -503,5 +556,4 @@ describe("DataGrid", () => {
     expect(onRowSelectionChange).toHaveBeenCalledWith([1]);
   });
 });
-
 

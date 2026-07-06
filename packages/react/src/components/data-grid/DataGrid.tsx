@@ -19,6 +19,7 @@ import {
   getColumnId,
   getColumnStyle,
   getColumnValue,
+  getNextMultiSortState,
   getNextSortState,
   getPageCount,
   orderColumns,
@@ -54,6 +55,10 @@ export function DataGrid<T>({
   defaultSort = null,
   sort,
   onSortChange,
+  enableMultiSort = false,
+  defaultMultiSort = [],
+  multiSort,
+  onMultiSortChange,
   defaultPagination = DEFAULT_PAGINATION,
   pagination,
   onPaginationChange,
@@ -86,6 +91,8 @@ export function DataGrid<T>({
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort,
   );
+  const [internalMultiSort, setInternalMultiSort] =
+    useState<SortState[]>(defaultMultiSort);
   const [internalPagination, setInternalPagination] =
     useState<PaginationState>(defaultPagination);
   const [internalFilter, setInternalFilter] =
@@ -100,6 +107,13 @@ export function DataGrid<T>({
   const [internalColumnPinning] =
     useState<ColumnPinningState>(defaultColumnPinning);
   const activeSort = sort === undefined ? internalSort : sort;
+  const activeMultiSort = multiSort === undefined ? internalMultiSort : multiSort;
+  const activeSortState = enableMultiSort ? activeMultiSort : activeSort;
+  const activeSortList = enableMultiSort
+    ? activeMultiSort
+    : activeSort
+      ? [activeSort]
+      : [];
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
   const activeFilter = filter === undefined ? internalFilter : filter;
@@ -151,8 +165,10 @@ export function DataGrid<T>({
   );
   const sortedData = useMemo(
     () =>
-      isServerMode ? filteredData : sortRows(filteredData, columns, activeSort),
-    [activeSort, columns, filteredData, isServerMode],
+      isServerMode
+        ? filteredData
+        : sortRows(filteredData, columns, activeSortState),
+    [activeSortState, columns, filteredData, isServerMode],
   );
   const totalRowCount = isServerMode ? (rowCount ?? data.length) : sortedData.length;
   const pageCount = getPageCount(totalRowCount, activePagination.pageSize);
@@ -203,8 +219,26 @@ export function DataGrid<T>({
     showPagination &&
     (totalRowCount > safePagination.pageSize || pageSizeOptions.length > 1);
 
-  function handleSort(column: Column<T>) {
+  function handleSort(
+    column: Column<T>,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
     if (!column.sortable) {
+      return;
+    }
+
+    if (enableMultiSort) {
+      const nextSort = getNextMultiSortState(
+        column,
+        activeMultiSort,
+        event.shiftKey,
+      );
+
+      if (multiSort === undefined) {
+        setInternalMultiSort(nextSort);
+      }
+
+      onMultiSortChange?.(nextSort);
       return;
     }
 
@@ -457,19 +491,22 @@ export function DataGrid<T>({
                     activeColumnPinning,
                     pinnedColumnOffsets,
                   )}
-                  aria-sort={getAriaSort(getColumnId(column), activeSort)}
+                  aria-sort={getAriaSort(getColumnId(column), activeSortList)}
                   scope="col"
                 >
                   {column.sortable ? (
                     <button
                       type="button"
-                      aria-label={getSortButtonLabel(column, activeSort)}
+                      aria-label={getSortButtonLabel(column, activeSortList)}
                       className="inline-flex items-center gap-1 font-medium text-inherit"
-                      onClick={() => handleSort(column)}
+                      onClick={(event) => handleSort(column, event)}
                     >
                       <span>{column.header}</span>
                       <span aria-hidden="true" className="text-xs text-gray-400">
-                        {getSortIndicator(getColumnId(column), activeSort)}
+                        {getSortIndicator(
+                          getColumnId(column),
+                          activeSortList,
+                        )}
                       </span>
                     </button>
                   ) : (
@@ -781,26 +818,28 @@ function getResolvedRowId<T>(
   return getRowId ? getRowId(row, rowIndex) : rowIndex;
 }
 
-function getSortIndicator(
-  columnId: string,
-  sort: DataGridProps<unknown>["sort"],
-) {
-  if (sort?.columnId !== columnId) {
+function getSortIndicator(columnId: string, sort: SortState[]) {
+  const sortIndex = sort.findIndex((item) => item.columnId === columnId);
+
+  if (sortIndex === -1) {
     return "-";
   }
 
-  return sort.direction === "asc" ? "ASC" : "DESC";
+  const direction = sort[sortIndex].direction === "asc" ? "ASC" : "DESC";
+
+  return sort.length > 1 ? `${direction} ${sortIndex + 1}` : direction;
 }
 
-function getSortButtonLabel<T>(column: Column<T>, sort: SortState | null) {
+function getSortButtonLabel<T>(column: Column<T>, sort: SortState[]) {
   const columnId = getColumnId(column);
   const headerLabel = getColumnHeaderLabel(column);
+  const activeSort = sort.find((item) => item.columnId === columnId);
 
-  if (sort?.columnId !== columnId) {
+  if (!activeSort) {
     return `Sort by ${headerLabel} ascending`;
   }
 
-  if (sort.direction === "asc") {
+  if (activeSort.direction === "asc") {
     return `Sort by ${headerLabel} descending`;
   }
 
@@ -815,15 +854,14 @@ function getColumnHeaderLabel<T>(column: Column<T>) {
   return getColumnId(column);
 }
 
-function getAriaSort(
-  columnId: string,
-  sort: DataGridProps<unknown>["sort"],
-) {
-  if (sort?.columnId !== columnId) {
+function getAriaSort(columnId: string, sort: SortState[]) {
+  const activeSort = sort.find((item) => item.columnId === columnId);
+
+  if (!activeSort) {
     return "none";
   }
 
-  return sort.direction === "asc" ? "ascending" : "descending";
+  return activeSort.direction === "asc" ? "ascending" : "descending";
 }
 
 

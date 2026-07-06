@@ -63,6 +63,10 @@ export type DataGridProps<T> = {
   defaultSort?: SortState | null;
   sort?: SortState | null;
   onSortChange?: (sort: SortState | null) => void;
+  enableMultiSort?: boolean;
+  defaultMultiSort?: SortState[];
+  multiSort?: SortState[];
+  onMultiSortChange?: (sort: SortState[]) => void;
   defaultPagination?: PaginationState;
   pagination?: PaginationState;
   onPaginationChange?: (pagination: PaginationState) => void;

@@ -156,27 +156,71 @@ export function getNextSortState<T>(
   return null;
 }
 
+export function getNextMultiSortState<T>(
+  column: Column<T>,
+  currentSort: SortState[],
+  additive: boolean,
+): SortState[] {
+  const columnId = getColumnId(column);
+  const existingSort = currentSort.find((sort) => sort.columnId === columnId);
+  const otherSorts = currentSort.filter((sort) => sort.columnId !== columnId);
+
+  if (!existingSort) {
+    const nextSort = { columnId, direction: "asc" as const };
+
+    return additive ? [...currentSort, nextSort] : [nextSort];
+  }
+
+  if (existingSort.direction === "asc") {
+    const nextSort = { columnId, direction: "desc" as const };
+
+    return additive
+      ? currentSort.map((sort) =>
+          sort.columnId === columnId ? nextSort : sort,
+        )
+      : [nextSort];
+  }
+
+  return additive ? otherSorts : [];
+}
+
 export function sortRows<T>(
   rows: T[],
   columns: Column<T>[],
-  sort: SortState | null,
+  sort: SortState | SortState[] | null,
 ): T[] {
-  if (!sort) {
+  const sortState = Array.isArray(sort) ? sort : sort ? [sort] : [];
+
+  if (sortState.length === 0) {
     return rows;
   }
 
-  const column = columns.find((item) => getColumnId(item) === sort.columnId);
+  const sortableColumns = sortState
+    .map((item) => ({
+      sort: item,
+      column: columns.find((column) => getColumnId(column) === item.columnId),
+    }))
+    .filter(
+      (item): item is { sort: SortState; column: Column<T> } =>
+        Boolean(item.column),
+    );
 
-  if (!column) {
+  if (sortableColumns.length === 0) {
     return rows;
   }
 
   return [...rows].sort((firstRow, secondRow) => {
-    const firstValue = getSortValue(firstRow, column);
-    const secondValue = getSortValue(secondRow, column);
-    const comparison = compareValues(firstValue, secondValue);
+    for (const { column, sort: sortItem } of sortableColumns) {
+      const firstValue = getSortValue(firstRow, column);
+      const secondValue = getSortValue(secondRow, column);
+      const comparison = compareValues(firstValue, secondValue);
 
-    return sort.direction === "asc" ? comparison : comparison * -1;
+      if (comparison !== 0) {
+        return sortItem.direction === "asc" ? comparison : comparison * -1;
+      }
+    }
+
+    return 0;
   });
 }
 

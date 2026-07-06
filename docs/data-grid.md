@@ -64,7 +64,6 @@ This keeps behavior predictable when features are combined. For example, filteri
 
 Use `mode="server"` when the consuming app owns filtering, sorting, pagination, and remote data loading. In server mode, DataGrid renders the `data` array exactly as provided while still emitting `onFilterChange`, `onSortChange`, and `onPaginationChange`.
 
-
 ## Server-Side Mode
 
 ```tsx
@@ -148,6 +147,22 @@ const [sort, setSort] = useState<SortState | null>(null);
   onSortChange={setSort}
 />;
 ```
+
+Multi-sort is opt-in. Click a sortable header to start a sort stack, then Shift-click another sortable header to add it as the next priority.
+
+```tsx
+const [multiSort, setMultiSort] = useState<SortState[]>([]);
+
+<DataGrid
+  columns={columns}
+  data={users}
+  enableMultiSort
+  multiSort={multiSort}
+  onMultiSortChange={setMultiSort}
+/>;
+```
+
+When `enableMultiSort` is enabled, DataGrid uses `multiSort`/`defaultMultiSort` instead of `sort`/`defaultSort` for row ordering.
 
 ## Filtering
 
@@ -365,6 +380,10 @@ DataGrid includes:
 | `defaultSort` | `SortState \| null` | Initial uncontrolled sort. |
 | `sort` | `SortState \| null` | Controlled sort. |
 | `onSortChange` | `(sort: SortState \| null) => void` | Sort change callback. |
+| `enableMultiSort` | `boolean` | Enables multi-column sorting with Shift-click. |
+| `defaultMultiSort` | `SortState[]` | Initial uncontrolled multi-sort stack. |
+| `multiSort` | `SortState[]` | Controlled multi-sort stack. |
+| `onMultiSortChange` | `(sort: SortState[]) => void` | Multi-sort change callback. |
 | `defaultPagination` | `PaginationState` | Initial uncontrolled pagination. |
 | `pagination` | `PaginationState` | Controlled pagination. |
 | `onPaginationChange` | `(pagination: PaginationState) => void` | Pagination change callback. |
@@ -437,5 +456,4 @@ pnpm typecheck
 pnpm lint
 pnpm build
 ```
-
 

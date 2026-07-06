@@ -51,7 +51,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Custom cell rendering.
 - Column alignment, widths, ordering, pinning, resizing, and visibility.
 - Controlled and uncontrolled filtering.
-- Controlled and uncontrolled sorting.
+- Controlled and uncontrolled single-column and multi-column sorting.
 - Controlled and uncontrolled pagination with first/previous/next/last controls.
 - Client-side and server-side row pipeline modes.
 - Controlled and uncontrolled row selection.
