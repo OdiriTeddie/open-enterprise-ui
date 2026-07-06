@@ -66,6 +66,8 @@ Use `mode="server"` when the consuming app owns filtering, sorting, pagination, 
 
 ## Server-Side Mode
 
+Server mode skips internal filtering, sorting, and pagination. Use the controlled state callbacks to update your query parameters, fetch the next page of rows, and pass the current page back through `data`. `rowCount` represents the total number of rows on the server and is used for page counts and range text.
+
 ```tsx
 const [sort, setSort] = useState<SortState | null>(null);
 const [filter, setFilter] = useState<FilterState>({ global: "" });
@@ -74,11 +76,22 @@ const [pagination, setPagination] = useState<PaginationState>({
   pageSize: 10,
 });
 
+const query = new URLSearchParams({
+  page: String(pagination.pageIndex + 1),
+  pageSize: String(pagination.pageSize),
+  search: filter.global,
+  sortBy: sort?.columnId ?? "",
+  sortDirection: sort?.direction ?? "",
+});
+
+const { rows, rowCount, loading } = useUsersQuery(query);
+
 <DataGrid
   columns={columns}
-  data={usersPage}
+  data={rows}
   mode="server"
-  rowCount={totalUsers}
+  rowCount={rowCount}
+  loading={loading}
   sort={sort}
   onSortChange={setSort}
   filter={filter}
@@ -88,7 +101,51 @@ const [pagination, setPagination] = useState<PaginationState>({
 />;
 ```
 
-Server mode skips internal filtering, sorting, and pagination. Use the controlled state callbacks to update your query parameters, fetch the next page of rows, and pass the current page back through `data`. `rowCount` represents the total number of rows on the server and is used for page counts and range text.
+The server response should include the current page rows and the total row count after filtering:
+
+```ts
+type UsersResponse = {
+  rows: User[];
+  rowCount: number;
+};
+```
+
+### Local Server Simulation
+
+This example uses local data to mimic what a backend endpoint would do. Notice that filtering, sorting, and pagination happen before rows are passed to `DataGrid`.
+
+```tsx
+function ServerUsersTable() {
+  const [sort, setSort] = useState<SortState | null>(null);
+  const [filter, setFilter] = useState<FilterState>({ global: "" });
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const serverResult = useMemo(
+    () => getServerUsers({ filter, pagination, sort }),
+    [filter, pagination, sort],
+  );
+
+  return (
+    <DataGrid
+      columns={columns}
+      data={serverResult.rows}
+      mode="server"
+      rowCount={serverResult.rowCount}
+      sort={sort}
+      onSortChange={setSort}
+      filter={filter}
+      onFilterChange={setFilter}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+    />
+  );
+}
+```
+
+For multi-sort in server mode, use `enableMultiSort`, `multiSort`, and `onMultiSortChange`, then serialize the `SortState[]` into your API query format.
 
 ## Column API
 

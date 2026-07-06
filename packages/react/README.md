@@ -61,6 +61,7 @@ export function UsersTable({ users }: { users: User[] }) {
 ## Documentation
 
 - [DataGrid API](../../docs/data-grid.md)
+- [Server-side DataGrid mode](../../docs/data-grid.md#server-side-mode)
 
 ## Development
 
