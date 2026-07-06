@@ -292,6 +292,43 @@ describe("DataGrid", () => {
     expect(headerCells[2]).toHaveTextContent("Name");
   });
 
+  it("renders pinned columns before and after unpinned columns", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnPinning={{ left: ["status"], right: ["name"] }}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    const headerCells = screen.getAllByRole("columnheader");
+
+    expect(headerCells[0]).toHaveTextContent("Status");
+    expect(headerCells[1]).toHaveTextContent("Role");
+    expect(headerCells[2]).toHaveTextContent("Name");
+    expect(headerCells[0]).toHaveStyle({ position: "sticky", left: "0px" });
+    expect(headerCells[2]).toHaveStyle({ position: "sticky", right: "0px" });
+  });
+
+  it("pins columns after applying column order", () => {
+    render(
+      <DataGrid
+        columns={columns}
+        data={users}
+        columnOrder={["role", "status", "name"]}
+        columnPinning={{ left: ["name"], right: ["status"] }}
+        pageSizeOptions={[10]}
+      />,
+    );
+
+    const headerCells = screen.getAllByRole("columnheader");
+
+    expect(headerCells[0]).toHaveTextContent("Name");
+    expect(headerCells[1]).toHaveTextContent("Role");
+    expect(headerCells[2]).toHaveTextContent("Status");
+  });
+
   it("hides columns from default visibility state", () => {
     render(
       <DataGrid

@@ -49,7 +49,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Typed column definitions.
 - Accessor keys and accessor functions.
 - Custom cell rendering.
-- Column alignment, widths, ordering, resizing, and visibility.
+- Column alignment, widths, ordering, pinning, resizing, and visibility.
 - Controlled and uncontrolled filtering.
 - Controlled and uncontrolled sorting.
 - Controlled and uncontrolled pagination with first/previous/next/last controls.

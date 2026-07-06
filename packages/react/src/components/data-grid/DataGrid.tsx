@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type {
   Column,
   ColumnOrderState,
+  ColumnPinningState,
   ColumnSizingState,
   ColumnVisibilityState,
   DataGridProps,
@@ -20,6 +22,7 @@ import {
   getNextSortState,
   getPageCount,
   orderColumns,
+  pinColumns,
   paginateRows,
   sortRows,
 } from "./utils";
@@ -34,6 +37,7 @@ const DEFAULT_PAGINATION: PaginationState = {
 };
 
 const DEFAULT_MIN_COLUMN_WIDTH = 80;
+const DEFAULT_COLUMN_PINNING: ColumnPinningState = { left: [], right: [] };
 const COLUMN_RESIZE_KEYBOARD_STEP = 10;
 
 export function DataGrid<T>({
@@ -72,6 +76,8 @@ export function DataGrid<T>({
   minColumnWidth = DEFAULT_MIN_COLUMN_WIDTH,
   defaultColumnOrder = [],
   columnOrder,
+  defaultColumnPinning = DEFAULT_COLUMN_PINNING,
+  columnPinning,
   enableColumnVisibility = false,
   defaultColumnVisibility = {},
   columnVisibility,
@@ -91,6 +97,8 @@ export function DataGrid<T>({
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<ColumnVisibilityState>(defaultColumnVisibility);
   const [internalColumnOrder] = useState<ColumnOrderState>(defaultColumnOrder);
+  const [internalColumnPinning] =
+    useState<ColumnPinningState>(defaultColumnPinning);
   const activeSort = sort === undefined ? internalSort : sort;
   const activePagination =
     pagination === undefined ? internalPagination : pagination;
@@ -105,17 +113,33 @@ export function DataGrid<T>({
       : columnVisibility;
   const activeColumnOrder =
     columnOrder === undefined ? internalColumnOrder : columnOrder;
+  const activeColumnPinning =
+    columnPinning === undefined ? internalColumnPinning : columnPinning;
   const isServerMode = mode === "server";
   const orderedColumns = useMemo(
     () => orderColumns(columns, activeColumnOrder),
     [activeColumnOrder, columns],
   );
-  const renderedColumns = useMemo(
+  const visibleColumns = useMemo(
     () =>
       orderedColumns.filter(
         (column) => activeColumnVisibility[getColumnId(column)] !== false,
       ),
     [activeColumnVisibility, orderedColumns],
+  );
+  const renderedColumns = useMemo(
+    () => pinColumns(visibleColumns, activeColumnPinning),
+    [activeColumnPinning, visibleColumns],
+  );
+  const pinnedColumnOffsets = useMemo(
+    () =>
+      getPinnedColumnOffsets(
+        renderedColumns,
+        activeColumnPinning,
+        activeColumnSizing,
+        minColumnWidth,
+      ),
+    [activeColumnPinning, activeColumnSizing, minColumnWidth, renderedColumns],
   );
   const selectedRowIdSet = useMemo(
     () => new Set(activeSelectedRowIds),
@@ -427,7 +451,12 @@ export function DataGrid<T>({
                 <th
                   key={getColumnId(column)}
                   className={`relative px-4 py-3 font-medium text-gray-700 ${getAlignClass(column)}`}
-                  style={getResolvedColumnStyle(column, activeColumnSizing)}
+                  style={getResolvedColumnStyle(
+                    column,
+                    activeColumnSizing,
+                    activeColumnPinning,
+                    pinnedColumnOffsets,
+                  )}
                   aria-sort={getAriaSort(getColumnId(column), activeSort)}
                   scope="col"
                 >
@@ -504,7 +533,12 @@ export function DataGrid<T>({
                       <td
                         key={getColumnId(column)}
                         className={`px-4 py-3 text-gray-700 ${getAlignClass(column)}`}
-                        style={getResolvedColumnStyle(column, activeColumnSizing)}
+                        style={getResolvedColumnStyle(
+                          column,
+                          activeColumnSizing,
+                          activeColumnPinning,
+                          pinnedColumnOffsets,
+                        )}
                       >
                         {column.cell
                           ? column.cell({
@@ -624,16 +658,88 @@ export function DataGrid<T>({
 function getResolvedColumnStyle<T>(
   column: Column<T>,
   columnSizing: ColumnSizingState,
+  columnPinning: ColumnPinningState,
+  pinnedColumnOffsets: Record<string, number>,
+): CSSProperties | undefined {
+  const columnId = getColumnId(column);
+  const sizedWidth = columnSizing[columnId];
+
+  const style: CSSProperties = {
+    ...getColumnStyle(column),
+  };
+
+  if (typeof sizedWidth === "number") {
+    style.width = `${sizedWidth}px`;
+  }
+
+  if (columnPinning.left.includes(columnId)) {
+    style.left = `${pinnedColumnOffsets[columnId] ?? 0}px`;
+    style.position = "sticky";
+    style.zIndex = 1;
+    style.background = "inherit";
+  }
+
+  if (columnPinning.right.includes(columnId)) {
+    style.right = `${pinnedColumnOffsets[columnId] ?? 0}px`;
+    style.position = "sticky";
+    style.zIndex = 1;
+    style.background = "inherit";
+  }
+
+  return Object.keys(style).length > 0 ? style : undefined;
+}
+
+function getPinnedColumnOffsets<T>(
+  columns: Column<T>[],
+  columnPinning: ColumnPinningState,
+  columnSizing: ColumnSizingState,
+  minColumnWidth: number,
+) {
+  const offsets: Record<string, number> = {};
+  let leftOffset = 0;
+
+  columns.forEach((column) => {
+    const columnId = getColumnId(column);
+
+    if (columnPinning.left.includes(columnId)) {
+      offsets[columnId] = leftOffset;
+      leftOffset += getResolvedColumnWidth(column, columnSizing, minColumnWidth);
+    }
+  });
+
+  let rightOffset = 0;
+
+  [...columns].reverse().forEach((column) => {
+    const columnId = getColumnId(column);
+
+    if (columnPinning.right.includes(columnId)) {
+      offsets[columnId] = rightOffset;
+      rightOffset += getResolvedColumnWidth(column, columnSizing, minColumnWidth);
+    }
+  });
+
+  return offsets;
+}
+
+function getResolvedColumnWidth<T>(
+  column: Column<T>,
+  columnSizing: ColumnSizingState,
+  minColumnWidth: number,
 ) {
   const columnId = getColumnId(column);
   const sizedWidth = columnSizing[columnId];
 
   if (typeof sizedWidth === "number") {
-    return { width: `${sizedWidth}px` };
+    return sizedWidth;
   }
 
-  return getColumnStyle(column);
+  if (typeof column.width === "number") {
+    return column.width;
+  }
+
+  return minColumnWidth;
 }
+
 function SelectAllCheckbox({
   checked,
   disabled,

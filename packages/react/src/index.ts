@@ -4,6 +4,7 @@ export type {
   Column,
   ColumnAlign,
   ColumnOrderState,
+  ColumnPinningState,
   ColumnSizingState,
   ColumnVisibilityState,
   DataGridMode,

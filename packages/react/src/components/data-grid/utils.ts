@@ -1,6 +1,7 @@
 import type {
   Column,
   ColumnOrderState,
+  ColumnPinningState,
   FilterState,
   PaginationState,
   SortState,
@@ -77,6 +78,39 @@ export function orderColumns<T>(
   });
 
   return orderedColumns;
+}
+
+export function pinColumns<T>(
+  columns: Column<T>[],
+  columnPinning: ColumnPinningState,
+): Column<T>[] {
+  const pinnedLeftColumnIds = new Set(columnPinning.left);
+  const pinnedColumnIds = new Set([
+    ...columnPinning.left,
+    ...columnPinning.right,
+  ]);
+
+  const leftColumns = columnPinning.left
+    .map((columnId) =>
+      columns.find((column) => getColumnId(column) === columnId),
+    )
+    .filter((column): column is Column<T> => Boolean(column));
+  const centerColumns = columns.filter(
+    (column) => !pinnedColumnIds.has(getColumnId(column)),
+  );
+  const rightColumns = columnPinning.right
+    .map((columnId) =>
+      columns.find((column) => getColumnId(column) === columnId),
+    )
+    .filter((column): column is Column<T> => Boolean(column));
+
+  return [
+    ...leftColumns,
+    ...centerColumns,
+    ...rightColumns.filter(
+      (column) => !pinnedLeftColumnIds.has(getColumnId(column)),
+    ),
+  ];
 }
 
 export function filterRows<T>(

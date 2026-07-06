@@ -9,6 +9,7 @@ import {
   DataGrid,
   type Column,
   type ColumnOrderState,
+  type ColumnPinningState,
   type DataGridMode,
   type FilterState,
   type PaginationState,
@@ -228,6 +229,25 @@ const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([
 
 `defaultColumnOrder` can be used when the grid owns the initial order. Use `columnOrder` when the order is controlled by your own toolbar, settings panel, or persisted user preferences.
 
+## Column Pinning
+
+Use `columnPinning` to keep important columns fixed while the table scrolls horizontally. Pinned columns are grouped after column ordering is applied: left-pinned columns render first, unpinned columns stay in the middle, and right-pinned columns render last.
+
+```tsx
+const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({
+  left: ["name"],
+  right: ["status"],
+});
+
+<DataGrid
+  columns={columns}
+  data={users}
+  columnPinning={columnPinning}
+/>
+```
+
+`defaultColumnPinning` can be used for an initial uncontrolled pinned layout. Sticky offsets use column sizing state first, then numeric `column.width`, then `minColumnWidth`.
+
 ## Column Visibility
 
 Column visibility can be configured up front or controlled externally. The built-in visibility controls are enabled with `enableColumnVisibility`.
@@ -363,6 +383,8 @@ DataGrid includes:
 | `enableColumnResizing` | `boolean` | Adds resize handles to column headers. |
 | `defaultColumnOrder` | `ColumnOrderState` | Initial uncontrolled column order. |
 | `columnOrder` | `ColumnOrderState` | Controlled column order. Missing columns are appended automatically. |
+| `defaultColumnPinning` | `ColumnPinningState` | Initial uncontrolled left and right pinned columns. |
+| `columnPinning` | `ColumnPinningState` | Controlled left and right pinned columns. |
 | `enableColumnVisibility` | `boolean` | Shows built-in column visibility controls. |
 | `defaultColumnVisibility` | `ColumnVisibilityState` | Initial uncontrolled column visibility. |
 | `columnVisibility` | `ColumnVisibilityState` | Controlled column visibility. |
@@ -396,6 +418,11 @@ type RowId = string | number;
 type ColumnSizingState = Record<string, number>;
 
 type ColumnOrderState = string[];
+
+type ColumnPinningState = {
+  left: string[];
+  right: string[];
+};
 
 type ColumnVisibilityState = Record<string, boolean>;
 ```

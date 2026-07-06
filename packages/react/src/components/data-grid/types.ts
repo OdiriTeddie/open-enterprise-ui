@@ -5,6 +5,10 @@ export type RowId = string | number;
 export type ColumnSizingState = Record<string, number>;
 export type ColumnVisibilityState = Record<string, boolean>;
 export type ColumnOrderState = string[];
+export type ColumnPinningState = {
+  left: string[];
+  right: string[];
+};
 export type SortDirection = "asc" | "desc";
 export type DataGridMode = "client" | "server";
 
@@ -81,6 +85,8 @@ export type DataGridProps<T> = {
   minColumnWidth?: number;
   defaultColumnOrder?: ColumnOrderState;
   columnOrder?: ColumnOrderState;
+  defaultColumnPinning?: ColumnPinningState;
+  columnPinning?: ColumnPinningState;
   enableColumnVisibility?: boolean;
   defaultColumnVisibility?: ColumnVisibilityState;
   columnVisibility?: ColumnVisibilityState;
