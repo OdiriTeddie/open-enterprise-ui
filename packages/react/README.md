@@ -54,6 +54,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Controlled and uncontrolled single-column and multi-column sorting.
 - Controlled and uncontrolled pagination with first/previous/next/last controls.
 - Client-side and server-side row pipeline modes.
+- Row virtualization for large datasets.
 - Controlled and uncontrolled row selection.
 - Custom loading, empty, and no-results render slots.
 - Accessible table, sorting, selection, and pagination semantics.

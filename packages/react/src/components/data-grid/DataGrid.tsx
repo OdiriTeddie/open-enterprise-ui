@@ -40,6 +40,9 @@ const DEFAULT_PAGINATION: PaginationState = {
 const DEFAULT_MIN_COLUMN_WIDTH = 80;
 const DEFAULT_COLUMN_PINNING: ColumnPinningState = { left: [], right: [] };
 const COLUMN_RESIZE_KEYBOARD_STEP = 10;
+const DEFAULT_VIRTUAL_ROW_HEIGHT = 48;
+const DEFAULT_VIRTUAL_OVERSCAN = 5;
+const DEFAULT_VIRTUAL_VIEWPORT_HEIGHT = 400;
 
 export function DataGrid<T>({
   columns,
@@ -74,6 +77,10 @@ export function DataGrid<T>({
   selectedRowIds,
   onRowSelectionChange,
   ariaLabel = "Data grid",
+  enableVirtualization = false,
+  virtualRowHeight = DEFAULT_VIRTUAL_ROW_HEIGHT,
+  virtualOverscan = DEFAULT_VIRTUAL_OVERSCAN,
+  virtualViewportHeight = DEFAULT_VIRTUAL_VIEWPORT_HEIGHT,
   enableColumnResizing = false,
   defaultColumnSizing = {},
   columnSizing,
@@ -109,6 +116,7 @@ export function DataGrid<T>({
   const [internalColumnPinning, setInternalColumnPinning] =
     useState<ColumnPinningState>(defaultColumnPinning);
   const [openColumnMenuId, setOpenColumnMenuId] = useState<string | null>(null);
+  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
   const activeSort = sort === undefined ? internalSort : sort;
   const activeMultiSort = multiSort === undefined ? internalMultiSort : multiSort;
   const activeSortState = enableMultiSort ? activeMultiSort : activeSort;
@@ -199,6 +207,29 @@ export function DataGrid<T>({
         };
       }),
     [getRowId, paginatedData, safePagination],
+  );
+  const virtualRange = useMemo(
+    () =>
+      getVirtualRange({
+        enabled: enableVirtualization,
+        overscan: virtualOverscan,
+        rowCount: visibleRows.length,
+        rowHeight: virtualRowHeight,
+        scrollTop: virtualScrollTop,
+        viewportHeight: virtualViewportHeight,
+      }),
+    [
+      enableVirtualization,
+      virtualOverscan,
+      virtualRowHeight,
+      virtualScrollTop,
+      virtualViewportHeight,
+      visibleRows.length,
+    ],
+  );
+  const renderedRows = useMemo(
+    () => visibleRows.slice(virtualRange.startIndex, virtualRange.endIndex),
+    [virtualRange, visibleRows],
   );
   const visibleRowIds = visibleRows.map((row) => row.rowId);
   const selectedVisibleRowCount = visibleRowIds.filter((rowId) =>
@@ -531,7 +562,19 @@ export function DataGrid<T>({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
+      <div
+        className={enableVirtualization ? "overflow-auto" : "overflow-x-auto"}
+        style={
+          enableVirtualization
+            ? { maxHeight: `${virtualViewportHeight}px` }
+            : undefined
+        }
+        onScroll={(event) => {
+          if (enableVirtualization) {
+            setVirtualScrollTop(event.currentTarget.scrollTop);
+          }
+        }}
+      >
         <table aria-label={ariaLabel} className="w-full border-collapse text-sm">
           <thead className="bg-gray-50">
             <tr>
@@ -679,7 +722,16 @@ export function DataGrid<T>({
                 </td>
               </tr>
             ) : (
-              visibleRows.map(({ row, rowId, rowIndex }) => (
+              <>
+                {virtualRange.topSpacerHeight > 0 ? (
+                  <tr aria-hidden="true">
+                    <td
+                      colSpan={emptyColumnSpan}
+                      style={{ height: `${virtualRange.topSpacerHeight}px`, padding: 0 }}
+                    />
+                  </tr>
+                ) : null}
+                {renderedRows.map(({ row, rowId, rowIndex }) => (
                 <tr key={rowId} className="border-t border-gray-200">
                   {enableRowSelection ? (
                     <td className="px-4 py-3">
@@ -722,7 +774,19 @@ export function DataGrid<T>({
                     );
                   })}
                 </tr>
-              ))
+                ))}
+                {virtualRange.bottomSpacerHeight > 0 ? (
+                  <tr aria-hidden="true">
+                    <td
+                      colSpan={emptyColumnSpan}
+                      style={{
+                        height: `${virtualRange.bottomSpacerHeight}px`,
+                        padding: 0,
+                      }}
+                    />
+                  </tr>
+                ) : null}
+              </>
             )}
           </tbody>
         </table>
@@ -823,6 +887,50 @@ export function DataGrid<T>({
   );
 }
 
+
+function getVirtualRange({
+  enabled,
+  overscan,
+  rowCount,
+  rowHeight,
+  scrollTop,
+  viewportHeight,
+}: {
+  enabled: boolean;
+  overscan: number;
+  rowCount: number;
+  rowHeight: number;
+  scrollTop: number;
+  viewportHeight: number;
+}) {
+  if (!enabled || rowCount === 0) {
+    return {
+      bottomSpacerHeight: 0,
+      endIndex: rowCount,
+      startIndex: 0,
+      topSpacerHeight: 0,
+    };
+  }
+
+  const safeRowHeight = Math.max(1, rowHeight);
+  const safeOverscan = Math.max(0, overscan);
+  const safeViewportHeight = Math.max(safeRowHeight, viewportHeight);
+  const visibleRowCount = Math.ceil(safeViewportHeight / safeRowHeight);
+  const renderedRowCount = visibleRowCount + safeOverscan * 2;
+  const maxStartIndex = Math.max(0, rowCount - renderedRowCount);
+  const startIndex = Math.min(
+    maxStartIndex,
+    Math.max(0, Math.floor(scrollTop / safeRowHeight) - safeOverscan),
+  );
+  const endIndex = Math.min(rowCount, startIndex + renderedRowCount);
+
+  return {
+    bottomSpacerHeight: Math.max(0, rowCount - endIndex) * safeRowHeight,
+    endIndex,
+    startIndex,
+    topSpacerHeight: startIndex * safeRowHeight,
+  };
+}
 
 function ColumnMenu<T>({
   canHide,

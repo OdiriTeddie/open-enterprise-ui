@@ -82,6 +82,10 @@ export type DataGridProps<T> = {
   selectedRowIds?: RowId[];
   onRowSelectionChange?: (selectedRowIds: RowId[]) => void;
   ariaLabel?: string;
+  enableVirtualization?: boolean;
+  virtualRowHeight?: number;
+  virtualOverscan?: number;
+  virtualViewportHeight?: number;
   enableColumnResizing?: boolean;
   defaultColumnSizing?: ColumnSizingState;
   columnSizing?: ColumnSizingState;

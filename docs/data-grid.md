@@ -377,6 +377,25 @@ const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({
 
 Column sizing falls back to `column.width` when no sizing state exists for a column. Resize handles support pointer dragging and keyboard resizing with `ArrowLeft` and `ArrowRight`.
 
+
+## Virtualization
+
+Enable row virtualization for large client-side pages or server-provided pages with many rows. The current implementation uses a fixed row height and renders only the visible row window plus overscan rows.
+
+```tsx
+<DataGrid
+  columns={columns}
+  data={users}
+  defaultPagination={{ pageIndex: 0, pageSize: 1000 }}
+  enableVirtualization
+  virtualRowHeight={48}
+  virtualViewportHeight={480}
+  virtualOverscan={6}
+/>
+```
+
+Virtualization runs after filtering, sorting, and pagination. With server mode, pass the current server page through `data`; virtualization only controls how many of those provided rows are mounted in the DOM.
+
 ## Row Selection
 
 ```tsx
@@ -472,6 +491,10 @@ DataGrid includes:
 | `selectedRowIds` | `RowId[]` | Controlled selected row ids. |
 | `onRowSelectionChange` | `(selectedRowIds: RowId[]) => void` | Selection change callback. |
 | `ariaLabel` | `string` | Accessible table label. |
+| `enableVirtualization` | `boolean` | Renders only the visible row window. |
+| `virtualRowHeight` | `number` | Fixed row height in pixels used for virtualization math. |
+| `virtualOverscan` | `number` | Extra rows rendered before and after the visible window. |
+| `virtualViewportHeight` | `number` | Maximum scroll viewport height in pixels. |
 | `enableColumnResizing` | `boolean` | Adds resize handles to column headers. |
 | `defaultColumnOrder` | `ColumnOrderState` | Initial uncontrolled column order. |
 | `columnOrder` | `ColumnOrderState` | Controlled column order. Missing columns are appended automatically. |

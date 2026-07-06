@@ -543,6 +543,66 @@ describe("DataGrid", () => {
     expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 170 });
   });
 
+
+  it("only renders the visible row window when virtualization is enabled", () => {
+    const manyUsers: User[] = Array.from({ length: 50 }, (_, index) => ({
+      id: index + 1,
+      name: `Person ${index + 1}`,
+      role: "Engineer",
+      status: "Active",
+    }));
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={manyUsers}
+        defaultPagination={{ pageIndex: 0, pageSize: 50 }}
+        enableVirtualization
+        pageSizeOptions={[50]}
+        virtualOverscan={0}
+        virtualRowHeight={10}
+        virtualViewportHeight={30}
+      />,
+    );
+
+    expect(screen.getByText("Person 1")).toBeInTheDocument();
+    expect(screen.getByText("Person 3")).toBeInTheDocument();
+    expect(screen.queryByText("Person 10")).not.toBeInTheDocument();
+  });
+
+  it("renders a later row window after virtual scroll", () => {
+    const manyUsers: User[] = Array.from({ length: 50 }, (_, index) => ({
+      id: index + 1,
+      name: `Person ${index + 1}`,
+      role: "Engineer",
+      status: "Active",
+    }));
+
+    render(
+      <DataGrid
+        columns={columns}
+        data={manyUsers}
+        defaultPagination={{ pageIndex: 0, pageSize: 50 }}
+        enableVirtualization
+        pageSizeOptions={[50]}
+        virtualOverscan={0}
+        virtualRowHeight={10}
+        virtualViewportHeight={30}
+      />,
+    );
+
+    const scrollContainer = screen.getByRole("table").parentElement;
+
+    if (!scrollContainer) {
+      throw new Error("Expected DataGrid scroll container to exist.");
+    }
+
+    fireEvent.scroll(scrollContainer, { target: { scrollTop: 100 } });
+
+    expect(screen.queryByText("Person 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Person 11")).toBeInTheDocument();
+  });
+
   it("leaves rows untouched in server mode", () => {
     render(
       <DataGrid
