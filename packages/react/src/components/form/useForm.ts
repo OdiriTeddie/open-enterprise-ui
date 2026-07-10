@@ -4,34 +4,69 @@ import type { FormEvent } from "react";
 export type FormErrors<TValues> = Partial<Record<keyof TValues, string>>;
 export type FormTouched<TValues> = Partial<Record<keyof TValues, boolean>>;
 export type FormValidator<TValues> = (values: TValues) => FormErrors<TValues>;
+export type FieldValidator<TValues, TKey extends keyof TValues> = (
+  value: TValues[TKey],
+  values: TValues,
+) => string | undefined;
+export type FieldValidators<TValues> = Partial<{
+  [TKey in keyof TValues]: FieldValidator<TValues, TKey>;
+}>;
+export type ServerFormError<TValues> = {
+  field?: keyof TValues;
+  message: string;
+};
 
 export type UseFormOptions<TValues extends Record<string, unknown>> = {
   initialValues: TValues;
   onSubmit?: (values: TValues) => void | Promise<void>;
   validate?: FormValidator<TValues>;
+  validateOnBlur?: boolean;
   validateOnChange?: boolean;
+  validators?: FieldValidators<TValues>;
 };
 
 export function useForm<TValues extends Record<string, unknown>>({
   initialValues,
   onSubmit,
   validate,
+  validateOnBlur = false,
   validateOnChange = false,
+  validators = {},
 }: UseFormOptions<TValues>) {
   const [values, setValues] = useState<TValues>(initialValues);
-  const [errors, setErrors] = useState<FormErrors<TValues>>({});
+  const [errors, setErrorsState] = useState<FormErrors<TValues>>({});
+  const [formError, setFormError] = useState<string | undefined>();
   const [touched, setTouched] = useState<FormTouched<TValues>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isValid = useMemo(() => Object.keys(errors).length === 0, [errors]);
+  const isValid = useMemo(
+    () => !formError && Object.keys(errors).length === 0,
+    [errors, formError],
+  );
+
+  function getValidationErrors(nextValues = values) {
+    const formLevelErrors = validate ? validate(nextValues) : {};
+    const fieldLevelErrors = getFieldValidationErrors(nextValues, validators);
+
+    return normalizeErrors({
+      ...fieldLevelErrors,
+      ...formLevelErrors,
+    });
+  }
 
   function runValidation(nextValues = values) {
-    const nextErrors = validate
-      ? normalizeErrors(validate(nextValues))
-      : {};
+    const nextErrors = getValidationErrors(nextValues);
 
-    setErrors(nextErrors);
+    setErrorsState(nextErrors);
     return nextErrors;
+  }
+
+  function validateField<TKey extends keyof TValues>(name: TKey) {
+    const validator = validators[name];
+    const nextError = validator ? validator(values[name], values) : undefined;
+
+    setError(name, nextError);
+    return nextError;
   }
 
   function setValue<TKey extends keyof TValues>(
@@ -46,12 +81,12 @@ export function useForm<TValues extends Record<string, unknown>>({
     setValues(nextValues);
 
     if (validateOnChange) {
-      runValidation(nextValues);
+      setErrorsState(getValidationErrors(nextValues));
     }
   }
 
   function setError<TKey extends keyof TValues>(name: TKey, error?: string) {
-    setErrors((currentErrors) => {
+    setErrorsState((currentErrors) => {
       const nextErrors = { ...currentErrors };
 
       if (error) {
@@ -64,6 +99,44 @@ export function useForm<TValues extends Record<string, unknown>>({
     });
   }
 
+  function setErrors(nextErrors: FormErrors<TValues>) {
+    setErrorsState(normalizeErrors(nextErrors));
+  }
+
+  function clearErrors(names?: Array<keyof TValues>) {
+    if (!names) {
+      setErrorsState({});
+      setFormError(undefined);
+      return;
+    }
+
+    setErrorsState((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+
+      names.forEach((name) => {
+        delete nextErrors[name];
+      });
+
+      return nextErrors;
+    });
+  }
+
+  function setServerErrors(serverErrors: Array<ServerFormError<TValues>>) {
+    const nextErrors: FormErrors<TValues> = {};
+    const formMessages: string[] = [];
+
+    serverErrors.forEach((error) => {
+      if (error.field) {
+        nextErrors[error.field] = error.message;
+      } else {
+        formMessages.push(error.message);
+      }
+    });
+
+    setErrors(nextErrors);
+    setFormError(formMessages[0]);
+  }
+
   function setFieldTouched<TKey extends keyof TValues>(
     name: TKey,
     isTouched = true,
@@ -72,11 +145,16 @@ export function useForm<TValues extends Record<string, unknown>>({
       ...currentTouched,
       [name]: isTouched,
     }));
+
+    if (isTouched && validateOnBlur) {
+      validateField(name);
+    }
   }
 
   function reset(nextValues = initialValues) {
     setValues(nextValues);
-    setErrors({});
+    setErrorsState({});
+    setFormError(undefined);
     setTouched({});
     setIsSubmitting(false);
   }
@@ -122,7 +200,9 @@ export function useForm<TValues extends Record<string, unknown>>({
   }
 
   return {
+    clearErrors,
     errors,
+    formError,
     getCheckboxProps,
     getInputProps,
     handleSubmit,
@@ -131,13 +211,36 @@ export function useForm<TValues extends Record<string, unknown>>({
     reset,
     runValidation,
     setError,
+    setErrors,
     setFieldTouched,
+    setFormError,
+    setServerErrors,
     setTouched,
     setValue,
     setValues,
     touched,
+    validateField,
     values,
   };
+}
+
+function getFieldValidationErrors<TValues extends Record<string, unknown>>(
+  values: TValues,
+  validators: FieldValidators<TValues>,
+) {
+  const errors: FormErrors<TValues> = {};
+
+  Object.keys(validators).forEach((name) => {
+    const fieldName = name as keyof TValues;
+    const validator = validators[fieldName];
+    const error = validator?.(values[fieldName], values);
+
+    if (error) {
+      errors[fieldName] = error;
+    }
+  });
+
+  return errors;
 }
 
 function normalizeErrors<TValues>(errors: FormErrors<TValues>) {

@@ -122,7 +122,7 @@ When `error` is present, it replaces the hint and is rendered with `role="alert"
 
 ## Form State And Validation
 
-`useForm` provides lightweight form state without locking you into a validation library. It manages values, errors, touched state, reset, validation, and submit handling.
+`useForm` provides lightweight form state without locking you into a validation library. It manages values, errors, touched state, reset, validation, server error mapping, and submit handling.
 
 ```tsx
 type UserFormValues = {
@@ -160,6 +160,50 @@ const form = useForm<UserFormValues>({
 
 `useForm` intentionally stays small. You can still use React Hook Form, Formik, Zod, Valibot, or server-provided errors by passing `error` directly to each primitive.
 
+
+### Field Validators
+
+Use `validators` for field-level validation and `validateOnBlur` or `validateOnChange` to decide when validation runs.
+
+```tsx
+const form = useForm({
+  initialValues: { email: "" },
+  validateOnBlur: true,
+  validators: {
+    email: (value) =>
+      String(value).includes("@") ? undefined : "Enter a valid email.",
+  },
+});
+```
+
+Use `validate` for whole-form rules that need access to every value.
+
+```tsx
+const form = useForm({
+  initialValues,
+  validate: (values) => ({
+    endDate:
+      values.endDate > values.startDate
+        ? undefined
+        : "End date must be after start date.",
+  }),
+});
+```
+
+### Server Errors
+
+Use `setServerErrors` to map API errors back into field errors and a form-level error.
+
+```tsx
+form.setServerErrors([
+  { field: "email", message: "Email already exists." },
+  { message: "Unable to save user." },
+]);
+```
+
+Use `clearErrors()` to clear everything or `clearErrors(["email"])` to clear specific field errors.
+
+
 ## Validation
 
 Validation is library-agnostic. Pass errors directly from your form state or validation library.
@@ -190,7 +234,7 @@ Each primitive wires:
 | `FormSection` | `title`, `description`, native section props |
 | `FormRow` | `columns`, native div props |
 | `FormActions` | `align`, native div props |
-| `useForm` | `initialValues`, `validate`, `onSubmit`, `validateOnChange` |
+| `useForm` | `initialValues`, `validate`, `validators`, `onSubmit`, `validateOnBlur`, `validateOnChange`, `setServerErrors`, `clearErrors` |
 | `Field` | `label`, `hint`, `error`, `required`, `disabled`, `htmlFor`, `id` |
 | `Input` | `label`, `hint`, `error`, `onValueChange`, `size`, native input props |
 | `Textarea` | `label`, `hint`, `error`, `onValueChange`, native textarea props |

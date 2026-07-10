@@ -39,6 +39,43 @@ function UseFormHarness({ onSubmit }: { onSubmit: (values: { name: string; sendI
   );
 }
 
+
+function ValidationModelHarness() {
+  const form = useForm({
+    initialValues: {
+      email: "",
+    },
+    validateOnBlur: true,
+    validators: {
+      email: (value) => (String(value).includes("@") ? undefined : "Invalid email"),
+    },
+  });
+
+  return (
+    <Form aria-label="Validation form">
+      {form.formError ? <div role="alert">{form.formError}</div> : null}
+      <Input label="Email" {...form.getInputProps("email")} />
+      <button
+        type="button"
+        onClick={() =>
+          form.setServerErrors([
+            { field: "email", message: "Email already exists" },
+            { message: "Unable to save user" },
+          ])
+        }
+      >
+        Apply server errors
+      </button>
+      <button type="button" onClick={() => form.clearErrors(["email"])}>
+        Clear email error
+      </button>
+      <button type="button" onClick={() => form.clearErrors()}>
+        Clear all errors
+      </button>
+    </Form>
+  );
+}
+
 describe("form primitives", () => {
   it("renders a standalone field with label, hint, and error", () => {
     render(
@@ -186,6 +223,35 @@ describe("form primitives", () => {
 
     expect(screen.getByLabelText("Name")).toHaveValue("");
     expect(screen.getByLabelText("Send invite")).not.toBeChecked();
+  });
+
+
+  it("supports field validators, server errors, and clearing errors", async () => {
+    const user = userEvent.setup();
+
+    render(<ValidationModelHarness />);
+
+    await user.click(screen.getByLabelText("Email"));
+    await user.tab();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid email");
+
+    await user.click(screen.getByRole("button", { name: "Apply server errors" }));
+
+    expect(screen.getAllByRole("alert")[0]).toHaveTextContent(
+      "Unable to save user",
+    );
+    expect(screen.getAllByRole("alert")[1]).toHaveTextContent(
+      "Email already exists",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Clear email error" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Unable to save user");
+
+    await user.click(screen.getByRole("button", { name: "Clear all errors" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
 });
