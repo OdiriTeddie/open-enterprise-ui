@@ -15,6 +15,7 @@ import {
   Input,
   Select,
   Textarea,
+  useForm,
   type SelectOption,
 } from "@open-enterprise-ui/react";
 ```
@@ -118,6 +119,47 @@ Use `Field` when composing a custom control while keeping consistent label, hint
 
 When `error` is present, it replaces the hint and is rendered with `role="alert"`.
 
+
+## Form State And Validation
+
+`useForm` provides lightweight form state without locking you into a validation library. It manages values, errors, touched state, reset, validation, and submit handling.
+
+```tsx
+type UserFormValues = {
+  email: string;
+  sendInvite: boolean;
+};
+
+const form = useForm<UserFormValues>({
+  initialValues: {
+    email: "",
+    sendInvite: true,
+  },
+  validate: (values) => ({
+    email: values.email ? undefined : "Email is required.",
+  }),
+  onSubmit: async (values) => {
+    await saveUser(values);
+  },
+});
+
+<Form onSubmit={form.handleSubmit}>
+  <Input label="Email" type="email" {...form.getInputProps("email")} />
+  <Checkbox label="Send invite" {...form.getCheckboxProps("sendInvite")} />
+
+  <FormActions>
+    <button type="button" onClick={() => form.reset()}>
+      Reset
+    </button>
+    <button disabled={form.isSubmitting} type="submit">
+      Save
+    </button>
+  </FormActions>
+</Form>
+```
+
+`useForm` intentionally stays small. You can still use React Hook Form, Formik, Zod, Valibot, or server-provided errors by passing `error` directly to each primitive.
+
 ## Validation
 
 Validation is library-agnostic. Pass errors directly from your form state or validation library.
@@ -148,6 +190,7 @@ Each primitive wires:
 | `FormSection` | `title`, `description`, native section props |
 | `FormRow` | `columns`, native div props |
 | `FormActions` | `align`, native div props |
+| `useForm` | `initialValues`, `validate`, `onSubmit`, `validateOnChange` |
 | `Field` | `label`, `hint`, `error`, `required`, `disabled`, `htmlFor`, `id` |
 | `Input` | `label`, `hint`, `error`, `onValueChange`, `size`, native input props |
 | `Textarea` | `label`, `hint`, `error`, `onValueChange`, native textarea props |

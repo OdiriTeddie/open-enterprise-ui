@@ -11,7 +11,33 @@ import {
   Input,
   Select,
   Textarea,
+  useForm,
 } from ".";
+
+
+function UseFormHarness({ onSubmit }: { onSubmit: (values: { name: string; sendInvite: boolean }) => void }) {
+  const form = useForm({
+    initialValues: {
+      name: "",
+      sendInvite: false,
+    },
+    onSubmit,
+    validate: (values) => ({
+      name: values.name.trim() ? undefined : "Name is required",
+    }),
+  });
+
+  return (
+    <Form aria-label="Hook form" onSubmit={form.handleSubmit}>
+      <Input label="Name" {...form.getInputProps("name")} />
+      <Checkbox label="Send invite" {...form.getCheckboxProps("sendInvite")} />
+      <button type="button" onClick={() => form.reset()}>
+        Reset
+      </button>
+      <button type="submit">Save</button>
+    </Form>
+  );
+}
 
 describe("form primitives", () => {
   it("renders a standalone field with label, hint, and error", () => {
@@ -133,6 +159,33 @@ describe("form primitives", () => {
     expect(screen.getByText("Profile details")).toBeInTheDocument();
     expect(screen.getByTestId("form-row")).toHaveClass("lg:grid-cols-3");
     expect(screen.getByTestId("form-actions")).toHaveClass("justify-between");
+  });
+
+
+  it("manages values, validation, submit, and reset with useForm", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(<UseFormHarness onSubmit={onSubmit} />);
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Name is required");
+
+    await user.type(screen.getByLabelText("Name"), "Ada");
+    await user.click(screen.getByLabelText("Send invite"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "Ada",
+      sendInvite: true,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Reset" }));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("");
+    expect(screen.getByLabelText("Send invite")).not.toBeChecked();
   });
 
 });
