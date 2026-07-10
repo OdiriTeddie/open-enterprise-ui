@@ -2,10 +2,18 @@ import {
   DataGridExample,
   ServerSideDataGridExample,
 } from "./components/data-grid";
+import { FormExample } from "./components/form";
 
 function App() {
   return (
     <main className="space-y-8 p-8">
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          Form primitives
+        </h1>
+        <FormExample />
+      </section>
+
       <section>
         <h1 className="mb-3 text-xl font-semibold text-gray-900">
           Client-side DataGrid

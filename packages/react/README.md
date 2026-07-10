@@ -2,7 +2,7 @@
 
 React components for Open Enterprise UI.
 
-This package is early-stage and currently starts with a typed `DataGrid` for data-heavy interfaces.
+This package is early-stage and currently includes a typed `DataGrid` for data-heavy interfaces and form primitives for enterprise workflows.
 
 ## Installation
 
@@ -44,6 +44,15 @@ export function UsersTable({ users }: { users: User[] }) {
 }
 ```
 
+## Components
+
+- DataGrid
+- Field
+- Input
+- Textarea
+- Select
+- Checkbox
+
 ## DataGrid Features
 
 - Typed column definitions.
@@ -63,6 +72,7 @@ export function UsersTable({ users }: { users: User[] }) {
 
 - [DataGrid API](../../docs/data-grid.md)
 - [Server-side DataGrid mode](../../docs/data-grid.md#server-side-mode)
+- [Form primitives](../../docs/form.md)
 
 ## Development
 
