@@ -1,7 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { Checkbox, Field, Input, Select, Textarea } from ".";
+import {
+  Checkbox,
+  Field,
+  Form,
+  FormActions,
+  FormRow,
+  FormSection,
+  Input,
+  Select,
+  Textarea,
+} from ".";
 
 describe("form primitives", () => {
   it("renders a standalone field with label, hint, and error", () => {
@@ -98,4 +108,31 @@ describe("form primitives", () => {
 
     expect(onCheckedChange).toHaveBeenCalledWith(true);
   });
+
+  it("renders form layout components", () => {
+    render(
+      <Form aria-label="User form" spacing="lg">
+        <FormSection description="Profile details" title="Profile">
+          <FormRow columns={3} data-testid="form-row">
+            <Input label="First name" />
+            <Input label="Last name" />
+            <Input label="Email" />
+          </FormRow>
+        </FormSection>
+        <FormActions align="between" data-testid="form-actions">
+          <button type="button">Cancel</button>
+          <button type="submit">Save</button>
+        </FormActions>
+      </Form>,
+    );
+
+    expect(screen.getByRole("form", { name: "User form" })).toHaveClass(
+      "gap-6",
+    );
+    expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
+    expect(screen.getByText("Profile details")).toBeInTheDocument();
+    expect(screen.getByTestId("form-row")).toHaveClass("lg:grid-cols-3");
+    expect(screen.getByTestId("form-actions")).toHaveClass("justify-between");
+  });
+
 });

@@ -20,10 +20,25 @@ export type {
 
 
 
-export { Checkbox, Field, FormExample, Input, Select, Textarea } from "./components/form";
+export {
+  Checkbox,
+  Field,
+  Form,
+  FormActions,
+  FormExample,
+  FormRow,
+  FormSection,
+  Input,
+  Select,
+  Textarea,
+} from "./components/form";
 export type {
   CheckboxProps,
   FieldProps,
+  FormActionsProps,
+  FormProps,
+  FormRowProps,
+  FormSectionProps,
   InputProps,
   SelectOption,
   SelectProps,

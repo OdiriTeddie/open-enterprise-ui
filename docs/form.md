@@ -1,6 +1,6 @@
 # Form Primitives
 
-The form primitives provide accessible, reusable controls for enterprise forms. Phase 1 includes `Field`, `Input`, `Textarea`, `Select`, and `Checkbox`.
+The form components provide accessible, reusable controls and layout primitives for enterprise forms. The current set includes `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Form`, `FormSection`, `FormRow`, and `FormActions`.
 
 ## Import
 
@@ -8,12 +8,44 @@ The form primitives provide accessible, reusable controls for enterprise forms. 
 import {
   Checkbox,
   Field,
+  Form,
+  FormActions,
+  FormRow,
+  FormSection,
   Input,
   Select,
   Textarea,
   type SelectOption,
 } from "@open-enterprise-ui/react";
 ```
+
+
+## Form Layout
+
+Use the layout components to build consistent enterprise forms without coupling to a form state library.
+
+```tsx
+<Form onSubmit={handleSubmit} spacing="lg">
+  <FormSection
+    title="Profile"
+    description="Basic account details and preferences."
+  >
+    <FormRow columns={2}>
+      <Input label="Full name" value={name} onValueChange={setName} />
+      <Input label="Email" type="email" value={email} onValueChange={setEmail} />
+    </FormRow>
+
+    <Textarea label="Notes" value={notes} onValueChange={setNotes} />
+  </FormSection>
+
+  <FormActions>
+    <button type="button">Cancel</button>
+    <button type="submit">Save</button>
+  </FormActions>
+</Form>
+```
+
+`FormRow` supports `columns={1 | 2 | 3 | 4}` and collapses responsively on smaller screens. `FormActions` supports `align="left"`, `align="right"`, and `align="between"`.
 
 ## Input
 
@@ -112,6 +144,10 @@ Each primitive wires:
 
 | Component | Important props |
 | --- | --- |
+| `Form` | `spacing`, native form props |
+| `FormSection` | `title`, `description`, native section props |
+| `FormRow` | `columns`, native div props |
+| `FormActions` | `align`, native div props |
 | `Field` | `label`, `hint`, `error`, `required`, `disabled`, `htmlFor`, `id` |
 | `Input` | `label`, `hint`, `error`, `onValueChange`, `size`, native input props |
 | `Textarea` | `label`, `hint`, `error`, `onValueChange`, native textarea props |
