@@ -5,6 +5,7 @@ import {
   Checkbox,
   Field,
   Form,
+  FormBuilder,
   FormActions,
   FormRow,
   FormSection,
@@ -13,6 +14,7 @@ import {
   Textarea,
   useForm,
 } from ".";
+import type { FormBuilderField } from ".";
 
 
 function UseFormHarness({ onSubmit }: { onSubmit: (values: { name: string; sendInvite: boolean }) => void }) {
@@ -254,4 +256,222 @@ describe("form primitives", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+
+  it("renders and submits a schema-driven form", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <FormBuilder
+        initialValues={{
+          name: "",
+          role: "",
+          sendInvite: false,
+        }}
+        schema={[
+          {
+            title: "Profile",
+            fields: [
+              { label: "Name", name: "name", required: true, type: "text" },
+              {
+                label: "Role",
+                name: "role",
+                options: [{ label: "Admin", value: "admin" }],
+                type: "select",
+              },
+              { label: "Send invite", name: "sendInvite", type: "checkbox" },
+            ],
+          },
+        ]}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Name *"), "Ada");
+    await user.selectOptions(screen.getByLabelText("Role"), "admin");
+    await user.click(screen.getByLabelText("Send invite"));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "Ada",
+      role: "admin",
+      sendInvite: true,
+    });
+  });
+
+  it("validates and conditionally renders schema fields", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+
+    render(
+      <FormBuilder
+        initialValues={{
+          email: "",
+          inviteNote: "",
+          sendInvite: false,
+        }}
+        schema={[
+          { label: "Email", name: "email", type: "email" },
+          { label: "Send invite", name: "sendInvite", type: "checkbox" },
+          {
+            label: "Invite note",
+            name: "inviteNote",
+            type: "textarea",
+            visibleWhen: (values) => Boolean(values.sendInvite),
+          },
+        ]}
+        validators={{
+          email: (value) => (String(value).includes("@") ? undefined : "Invalid email"),
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Invite note")).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Send invite"));
+
+    expect(screen.getByLabelText("Invite note")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid email");
+  });
+  it("tracks dirty fields and resets the clean baseline", async () => {
+    const user = userEvent.setup();
+
+    function DirtyStateHarness() {
+      const form = useForm({
+        initialValues: {
+          name: "Ada",
+        },
+      });
+
+      return (
+        <Form aria-label="Dirty state form">
+          <Input label="Name" {...form.getInputProps("name")} />
+          <div data-testid="is-dirty">{String(form.isDirty)}</div>
+          <div data-testid="name-dirty">{String(Boolean(form.dirtyFields.name))}</div>
+          <button type="button" onClick={() => form.reset({ name: "Grace" })}>
+            Reset to Grace
+          </button>
+          <button type="button" onClick={() => form.markClean()}>
+            Mark clean
+          </button>
+        </Form>
+      );
+    }
+
+    render(<DirtyStateHarness />);
+
+    expect(screen.getByTestId("is-dirty")).toHaveTextContent("false");
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Grace");
+
+    expect(screen.getByTestId("is-dirty")).toHaveTextContent("true");
+    expect(screen.getByTestId("name-dirty")).toHaveTextContent("true");
+
+    await user.click(screen.getByRole("button", { name: "Mark clean" }));
+
+    expect(screen.getByTestId("is-dirty")).toHaveTextContent("false");
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Katherine");
+    await user.click(screen.getByRole("button", { name: "Reset to Grace" }));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Grace");
+    expect(screen.getByTestId("is-dirty")).toHaveTextContent("false");
+  });
+
+  it("supports builder-level disabled and read-only form states", () => {
+    const schema: Array<FormBuilderField<{ name: string; role: string; sendInvite: boolean }>> = [
+      { label: "Name", name: "name", type: "text" as const },
+      {
+        label: "Role",
+        name: "role",
+        options: [{ label: "Admin", value: "admin" }],
+        type: "select" as const,
+      },
+      { label: "Send invite", name: "sendInvite", type: "checkbox" as const },
+    ];
+
+    const { rerender } = render(
+      <FormBuilder
+        disabled
+        initialValues={{ name: "Ada", role: "", sendInvite: false }}
+        schema={schema}
+      />,
+    );
+
+    expect(screen.getByLabelText("Name")).toBeDisabled();
+    expect(screen.getByLabelText("Role")).toBeDisabled();
+    expect(screen.getByLabelText("Send invite")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+
+    rerender(
+      <FormBuilder
+        readOnly
+        initialValues={{ name: "Ada", role: "", sendInvite: false }}
+        schema={schema}
+      />,
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Role")).toBeDisabled();
+    expect(screen.getByLabelText("Send invite")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeDisabled();
+  });
+
+  it("loads select options asynchronously in FormBuilder", async () => {
+    render(
+      <FormBuilder
+        initialValues={{ role: "" }}
+        schema={[
+          {
+            label: "Role",
+            loadOptions: async () => [{ label: "Admin", value: "admin" }],
+            name: "role",
+            placeholder: "Choose role",
+            type: "select",
+          },
+        ]}
+      />,
+    );
+
+    expect(await screen.findByRole("option", { name: "Admin" })).toBeInTheDocument();
+  });
+
+  it("can render a default reset action in FormBuilder", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FormBuilder
+        initialValues={{ name: "Ada" }}
+        schema={[{ label: "Name", name: "name", type: "text" }]}
+        showReset
+      />,
+    );
+
+    const resetButton = screen.getByRole("button", { name: "Reset" });
+
+    expect(resetButton).toBeDisabled();
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Grace");
+
+    expect(resetButton).toBeEnabled();
+
+    await user.click(resetButton);
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Ada");
+    expect(resetButton).toBeDisabled();
+  });
+
 });
+
+
+

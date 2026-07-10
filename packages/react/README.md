@@ -52,6 +52,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Textarea
 - Select
 - Checkbox
+- FormBuilder
 
 ## DataGrid Features
 

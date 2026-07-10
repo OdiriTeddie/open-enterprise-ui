@@ -10,6 +10,7 @@ import {
   Field,
   Form,
   FormActions,
+  FormBuilder,
   FormRow,
   FormSection,
   Input,
@@ -122,7 +123,7 @@ When `error` is present, it replaces the hint and is rendered with `role="alert"
 
 ## Form State And Validation
 
-`useForm` provides lightweight form state without locking you into a validation library. It manages values, errors, touched state, reset, validation, server error mapping, and submit handling.
+`useForm` provides lightweight form state without locking you into a validation library. It manages values, errors, touched state, dirty tracking, reset, validation, server error mapping, and submit handling.
 
 ```tsx
 type UserFormValues = {
@@ -202,7 +203,122 @@ form.setServerErrors([
 ```
 
 Use `clearErrors()` to clear everything or `clearErrors(["email"])` to clear specific field errors.
+### Dirty Tracking
 
+`useForm` exposes `dirtyFields`, `isDirty`, `defaultValues`, and `markClean()` for enterprise save flows.
+
+```tsx
+const form = useForm({
+  initialValues: { name: "" },
+  onSubmit: async (values) => {
+    await saveUser(values);
+    form.markClean();
+  },
+});
+
+<button disabled={!form.isDirty || form.isSubmitting} type="submit">
+  Save changes
+</button>
+```
+
+`reset(nextValues)` updates both the current values and the clean baseline, so reset states stay consistent after loading new server data.
+
+
+
+## Schema-Driven Form Builder
+
+Use `FormBuilder` when a form should be generated from configuration. This is useful for admin screens, internal tools, settings pages, and server-defined forms.
+
+```tsx
+type UserFormValues = {
+  email: string;
+  role: string;
+  sendInvite: boolean;
+};
+
+<FormBuilder<UserFormValues>
+  initialValues={{
+    email: "",
+    role: "",
+    sendInvite: true,
+  }}
+  schema={[
+    {
+      title: "Profile",
+      description: "Basic account details.",
+      columns: 2,
+      fields: [
+        { name: "email", type: "email", label: "Email", required: true },
+        {
+          name: "role",
+          type: "select",
+          label: "Role",
+          placeholder: "Choose role",
+          options: [
+            { label: "Admin", value: "admin" },
+            { label: "User", value: "user" },
+          ],
+        },
+        { name: "sendInvite", type: "checkbox", label: "Send invite" },
+      ],
+    },
+  ]}
+  validators={{
+    email: (value) =>
+      String(value).includes("@") ? undefined : "Enter a valid email.",
+  }}
+  onSubmit={saveUser}
+/>
+```
+
+Supported field types are `text`, `email`, `password`, `number`, `textarea`, `select`, and `checkbox`.
+### Enterprise Builder Options
+
+`FormBuilder` includes a few enterprise-focused controls for generated forms:
+
+```tsx
+<FormBuilder
+  disabled={isSaving}
+  readOnly={!canEdit}
+  showReset
+  resetLabel="Discard changes"
+  initialValues={values}
+  schema={schema}
+  onSubmit={saveUser}
+/>
+```
+
+- `disabled` disables every generated control and submit action.
+- `readOnly` makes text controls read-only and disables selects, checkboxes, and submit.
+- `showReset` adds a reset button that is enabled only when the form is dirty.
+- `resetLabel` customizes the generated reset action.
+
+Select fields can load options from local or remote data:
+
+```tsx
+{
+  name: "role",
+  type: "select",
+  label: "Role",
+  placeholder: "Choose role",
+  loadOptions: async () => fetchRoles(),
+}
+```
+
+`loadOptions` receives the current form values, which makes dependent selects possible.
+
+Fields can be hidden or conditionally rendered:
+
+```tsx
+{
+  name: "inviteNote",
+  type: "textarea",
+  label: "Invite note",
+  visibleWhen: (values) => Boolean(values.sendInvite),
+}
+```
+
+You can pass an existing `form` returned by `useForm` when you need full control over values, validation, or server errors.
 
 ## Validation
 
@@ -230,13 +346,17 @@ Each primitive wires:
 
 | Component | Important props |
 | --- | --- |
+| `FormBuilder` | `schema`, `initialValues`, `validators`, `validate`, `onSubmit`, `actions`, `submitLabel`, `disabled`, `readOnly`, `showReset`, `resetLabel` |
 | `Form` | `spacing`, native form props |
 | `FormSection` | `title`, `description`, native section props |
 | `FormRow` | `columns`, native div props |
 | `FormActions` | `align`, native div props |
-| `useForm` | `initialValues`, `validate`, `validators`, `onSubmit`, `validateOnBlur`, `validateOnChange`, `setServerErrors`, `clearErrors` |
+| `useForm` | `initialValues`, `validate`, `validators`, `onSubmit`, `validateOnBlur`, `validateOnChange`, `isDirty`, `dirtyFields`, `markClean`, `setServerErrors`, `clearErrors` |
 | `Field` | `label`, `hint`, `error`, `required`, `disabled`, `htmlFor`, `id` |
 | `Input` | `label`, `hint`, `error`, `onValueChange`, `size`, native input props |
 | `Textarea` | `label`, `hint`, `error`, `onValueChange`, native textarea props |
 | `Select` | `label`, `hint`, `error`, `options`, `placeholder`, `onValueChange`, native select props |
 | `Checkbox` | `label`, `hint`, `error`, `onCheckedChange`, native checkbox props |
+
+
+

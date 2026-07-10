@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 
-export type FormSectionProps = HTMLAttributes<HTMLElement> & {
+export type FormSectionProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   children: ReactNode;
   description?: ReactNode;
   title?: ReactNode;

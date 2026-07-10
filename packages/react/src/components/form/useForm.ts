@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 
 export type FormErrors<TValues> = Partial<Record<keyof TValues, string>>;
 export type FormTouched<TValues> = Partial<Record<keyof TValues, boolean>>;
+export type FormDirtyFields<TValues> = Partial<Record<keyof TValues, boolean>>;
 export type FormValidator<TValues> = (values: TValues) => FormErrors<TValues>;
 export type FieldValidator<TValues, TKey extends keyof TValues> = (
   value: TValues[TKey],
@@ -33,11 +34,22 @@ export function useForm<TValues extends Record<string, unknown>>({
   validateOnChange = false,
   validators = {},
 }: UseFormOptions<TValues>) {
+  const [defaultValues, setDefaultValues] = useState<TValues>(initialValues);
   const [values, setValues] = useState<TValues>(initialValues);
   const [errors, setErrorsState] = useState<FormErrors<TValues>>({});
   const [formError, setFormError] = useState<string | undefined>();
   const [touched, setTouched] = useState<FormTouched<TValues>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const dirtyFields = useMemo(
+    () => getDirtyFields(values, defaultValues),
+    [defaultValues, values],
+  );
+
+  const isDirty = useMemo(
+    () => Object.keys(dirtyFields).length > 0,
+    [dirtyFields],
+  );
 
   const isValid = useMemo(
     () => !formError && Object.keys(errors).length === 0,
@@ -151,7 +163,12 @@ export function useForm<TValues extends Record<string, unknown>>({
     }
   }
 
+  function markClean(nextDefaultValues = values) {
+    setDefaultValues(nextDefaultValues);
+  }
+
   function reset(nextValues = initialValues) {
+    setDefaultValues(nextValues);
     setValues(nextValues);
     setErrorsState({});
     setFormError(undefined);
@@ -201,13 +218,17 @@ export function useForm<TValues extends Record<string, unknown>>({
 
   return {
     clearErrors,
+    defaultValues,
+    dirtyFields,
     errors,
     formError,
     getCheckboxProps,
     getInputProps,
     handleSubmit,
+    isDirty,
     isSubmitting,
     isValid,
+    markClean,
     reset,
     runValidation,
     setError,
@@ -222,6 +243,23 @@ export function useForm<TValues extends Record<string, unknown>>({
     validateField,
     values,
   };
+}
+
+function getDirtyFields<TValues extends Record<string, unknown>>(
+  values: TValues,
+  defaultValues: TValues,
+) {
+  const dirtyFields: FormDirtyFields<TValues> = {};
+
+  Object.keys(values).forEach((name) => {
+    const fieldName = name as keyof TValues;
+
+    if (!Object.is(values[fieldName], defaultValues[fieldName])) {
+      dirtyFields[fieldName] = true;
+    }
+  });
+
+  return dirtyFields;
 }
 
 function getFieldValidationErrors<TValues extends Record<string, unknown>>(

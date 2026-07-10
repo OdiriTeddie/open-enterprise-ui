@@ -1,3 +1,4 @@
+export { FormBuilder } from "./FormBuilder";
 export { Form } from "./Form";
 export { FormActions } from "./FormActions";
 export { FormRow } from "./FormRow";
@@ -21,9 +22,19 @@ export { useForm } from "./useForm";
 export type {
   FieldValidator,
   FieldValidators,
+  FormDirtyFields,
   FormErrors,
   FormTouched,
   FormValidator,
   ServerFormError,
   UseFormOptions,
 } from "./useForm";
+export type {
+  FormBuilderField,
+  FormBuilderFieldType,
+  FormBuilderForm,
+  FormBuilderProps,
+  FormBuilderSchema,
+  FormBuilderSection,
+} from "./FormBuilder";
+
