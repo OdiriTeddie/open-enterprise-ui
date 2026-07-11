@@ -1,5 +1,5 @@
-﻿import { useEffect, useId, useMemo, useState } from "react";
-import type { MouseEvent, ReactNode } from "react";
+﻿import { useEffect, useId, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import type {
   FileManagerBreadcrumb,
   FileManagerContextMenuItem,
@@ -90,6 +90,7 @@ export function FileManager({
   viewMode,
 }: FileManagerProps) {
   const searchInputId = useId();
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const [internalFolderId, setInternalFolderId] = useState<FileManagerItemId | undefined>(defaultFolderId);
   const [navigationHistory, setNavigationHistory] = useState<Array<FileManagerItemId | undefined>>([]);
   const [internalSearch, setInternalSearch] = useState("");
@@ -114,6 +115,41 @@ export function FileManager({
   const [uploadError, setUploadError] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const currentFolderId = folderId ?? internalFolderId;
+
+  useEffect(() => {
+    if (!activeContextMenu) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      contextMenuRef.current?.querySelector<HTMLButtonElement>('button[role="menuitem"]:not(:disabled)')?.focus();
+    });
+  }, [activeContextMenu]);
+
+  useEffect(() => {
+    function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (activeContextMenu) {
+        setActiveContextMenu(null);
+      } else if (renameItem) {
+        setRenameItem(null);
+      } else if (transferDialog) {
+        setTransferDialog(null);
+      } else if (uploadDialogOpen) {
+        setUploadDialogOpen(false);
+      } else if (detailsItem) {
+        setDetailsItem(null);
+        onDetailsClose?.();
+      }
+    }
+
+    document.addEventListener("keydown", handleDocumentKeyDown);
+
+    return () => document.removeEventListener("keydown", handleDocumentKeyDown);
+  }, [activeContextMenu, detailsItem, onDetailsClose, renameItem, transferDialog, uploadDialogOpen]);
 
   useEffect(() => {
     if (!dataProvider) {
@@ -640,6 +676,72 @@ export function FileManager({
     onContextMenuOpen?.(item);
   }
 
+  function handleContextMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const menuItems = Array.from(
+      contextMenuRef.current?.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]:not(:disabled)') ?? [],
+    );
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setActiveContextMenu(null);
+      return;
+    }
+
+    if (menuItems.length === 0) {
+      return;
+    }
+
+    const currentIndex = menuItems.indexOf(document.activeElement as HTMLButtonElement);
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      menuItems[(currentIndex + 1) % menuItems.length]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      menuItems[currentIndex <= 0 ? menuItems.length - 1 : currentIndex - 1]?.focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      menuItems[0]?.focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      menuItems[menuItems.length - 1]?.focus();
+    }
+  }
+
+  function handleItemKeyboardContextMenu(item: FileManagerItem, event: KeyboardEvent) {
+    if ((event.shiftKey && event.key === "F10") || event.key === "ContextMenu") {
+      event.preventDefault();
+      handleContextMenuOpen(item);
+    }
+  }
+
+  function handleActionButtonKeyDown(item: FileManagerItem, event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      handleContextMenuOpen(item);
+    }
+  }
+
+  function dismissActiveOverlay() {
+    if (activeContextMenu) {
+      setActiveContextMenu(null);
+    } else if (renameItem) {
+      setRenameItem(null);
+    } else if (transferDialog) {
+      setTransferDialog(null);
+    } else if (uploadDialogOpen) {
+      setUploadDialogOpen(false);
+    } else if (detailsItem) {
+      handleDetailsClose();
+    }
+  }
+
+  function handleDismissKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Escape") {
+      dismissActiveOverlay();
+    }
+  }
+
   function isContextMenuItemDisabled(menuItem: FileManagerContextMenuItem, item: FileManagerItem) {
     return typeof menuItem.disabled === "function" ? menuItem.disabled(item) : Boolean(menuItem.disabled);
   }
@@ -659,6 +761,7 @@ export function FileManager({
         aria-label={`Open actions for ${item.name}`}
         className="rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900"
         onClick={() => handleContextMenuOpen(item)}
+        onKeyDown={(event) => handleActionButtonKeyDown(item, event)}
         type="button"
       >
         Actions
@@ -715,6 +818,7 @@ export function FileManager({
                 <button
                   className="block w-full truncate text-left text-sm font-medium text-gray-900 hover:underline"
                   onClick={() => handleItemOpen(item)}
+                  onKeyDown={(event) => handleItemKeyboardContextMenu(item, event)}
                   type="button"
                 >
                   {item.name}
@@ -777,6 +881,7 @@ export function FileManager({
                     <button
                       className="flex items-center gap-2 text-left font-medium text-gray-900 hover:underline"
                       onClick={() => handleItemOpen(item)}
+                      onKeyDown={(event) => handleItemKeyboardContextMenu(item, event)}
                       type="button"
                     >
                       <span aria-hidden="true" className="text-xs font-semibold text-gray-500">{item.type === "folder" ? "DIR" : "FILE"}</span>
@@ -797,7 +902,7 @@ export function FileManager({
   }
 
   return (
-    <section aria-label={ariaLabel} className={`relative overflow-hidden rounded-md border border-gray-200 bg-white ${className}`}>
+    <section aria-label={ariaLabel} className={`relative overflow-hidden rounded-md border border-gray-200 bg-white ${className}`} onKeyDown={handleDismissKeyDown}>
       <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {showNavigationControls ? (
@@ -946,6 +1051,8 @@ export function FileManager({
           <div
             aria-label={`Actions for ${activeContextMenu.item.name}`}
             className="absolute min-w-40 rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg"
+            onKeyDown={handleContextMenuKeyDown}
+            ref={contextMenuRef}
             role="menu"
             style={{
               left: activeContextMenu.x ?? undefined,

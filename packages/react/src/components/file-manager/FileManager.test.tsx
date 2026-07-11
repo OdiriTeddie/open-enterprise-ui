@@ -607,6 +607,53 @@ describe("FileManager", () => {
     expect(onSelectionChange).not.toHaveBeenCalledWith({ item: items[1], selectedIds: ["report"] });
   });
 
+
+
+  it("supports keyboard navigation inside the context menu", async () => {
+    const user = userEvent.setup();
+
+    render(<FileManager items={items} />);
+
+    screen.getByRole("button", { name: "Open actions for Report.pdf" }).focus();
+    await user.keyboard("{ArrowDown}");
+
+    const menu = screen.getByRole("menu", { name: "Actions for Report.pdf" });
+    await waitFor(() => expect(within(menu).getByRole("menuitem", { name: "Open" })).toHaveFocus());
+
+    await user.keyboard("{ArrowDown}");
+    expect(within(menu).getByRole("menuitem", { name: "Details" })).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("dialog", { name: "Details for Report.pdf" })).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Details for Report.pdf" })).not.toBeInTheDocument();
+  });
+
+  it("opens the item context menu with keyboard context menu shortcuts", async () => {
+    const user = userEvent.setup();
+
+    render(<FileManager items={items} />);
+
+    screen.getByRole("button", { name: "Report.pdf" }).focus();
+    await user.keyboard("{Shift>}{F10}{/Shift}");
+
+    expect(screen.getByRole("menu", { name: "Actions for Report.pdf" })).toBeInTheDocument();
+  });
+
+  it("closes the context menu with Escape", async () => {
+    const user = userEvent.setup();
+
+    render(<FileManager items={items} />);
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    expect(screen.getByRole("menu", { name: "Actions for Report.pdf" })).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("menu", { name: "Actions for Report.pdf" })).not.toBeInTheDocument();
+  });
+
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager

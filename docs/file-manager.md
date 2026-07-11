@@ -215,6 +215,15 @@ Use `permissions` to disable built-in actions globally or per item. Each rule ca
 
 Supported permission keys are `open`, `details`, `select`, `createFolder`, `upload`, `download`, `delete`, `rename`, `copy`, and `move`.
 
+## Keyboard Accessibility
+
+The File Manager supports keyboard access for common file workflows:
+
+- Item action buttons open with `Enter`, `Space`, `ArrowDown`, or `ArrowUp`.
+- Focus moves through context menu items with `ArrowDown`, `ArrowUp`, `Home`, and `End`.
+- File and folder item buttons open the context menu with `Shift+F10` or the keyboard Context Menu key.
+- `Escape` closes the active context menu, dialog, or details panel.
+
 ## Render Slots
 
 Use `renderLoading` and `renderEmpty` when the product needs branded states.
