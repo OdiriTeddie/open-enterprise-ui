@@ -34,6 +34,14 @@ export type FileManagerSelectionChange = {
   selectedIds: FileManagerItemId[];
 };
 
+export type FileManagerContextMenuItem = {
+  danger?: boolean;
+  disabled?: boolean | ((item: FileManagerItem) => boolean);
+  id: string;
+  label: ReactNode;
+  onSelect: (item: FileManagerItem) => void;
+};
+
 export type FileManagerLoadResult = {
   breadcrumbs?: FileManagerBreadcrumb[];
   items: FileManagerItem[];
@@ -52,6 +60,7 @@ export type FileManagerProps = {
   ariaLabel?: string;
   breadcrumbs?: FileManagerBreadcrumb[];
   className?: string;
+  contextMenuItems?: FileManagerContextMenuItem[];
   dataProvider?: FileManagerDataProvider;
   defaultFolderId?: FileManagerItemId;
   defaultSelectedIds?: FileManagerItemId[];
@@ -69,6 +78,7 @@ export type FileManagerProps = {
   onDownload?: (items: FileManagerItem[]) => void;
   onError?: (error: unknown) => void;
   onFolderChange?: (folderId?: FileManagerItemId) => void;
+  onContextMenuOpen?: (item: FileManagerItem) => void;
   onItemOpen?: (item: FileManagerItem) => void;
   onSearchChange?: (query: string) => void;
   onSelectionChange?: (change: FileManagerSelectionChange) => void;
@@ -84,3 +94,4 @@ export type FileManagerProps = {
   sort?: FileManagerSortState;
   viewMode?: FileManagerViewMode;
 };
+

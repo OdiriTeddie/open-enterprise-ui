@@ -60,6 +60,7 @@ export function FileManagerExample() {
 export { FileManager } from "./FileManager";
 export type {
   FileManagerBreadcrumb,
+  FileManagerContextMenuItem,
   FileManagerDataProvider,
   FileManagerLoadResult,
   FileManagerItem,
@@ -72,5 +73,6 @@ export type {
   FileManagerSortState,
   FileManagerViewMode,
 } from "./types";
+
 
 

@@ -1,7 +1,8 @@
 ﻿import { useEffect, useId, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import type {
   FileManagerBreadcrumb,
+  FileManagerContextMenuItem,
   FileManagerItem,
   FileManagerItemId,
   FileManagerProps,
@@ -26,10 +27,17 @@ const sortOptions: Array<{ label: string; value: FileManagerSortKey }> = [
   { label: "Modified", value: "modifiedAt" },
 ];
 
+type ActiveContextMenu = {
+  item: FileManagerItem;
+  x?: number;
+  y?: number;
+};
+
 export function FileManager({
   ariaLabel = "File manager",
   breadcrumbs = defaultBreadcrumbs,
   className = "",
+  contextMenuItems = [],
   dataProvider,
   defaultFolderId,
   defaultSelectedIds = [],
@@ -42,6 +50,7 @@ export function FileManager({
   loading = false,
   noResultsMessage = "No files match your search.",
   onBreadcrumbClick,
+  onContextMenuOpen,
   onCreateFolder,
   onDelete,
   onDownload,
@@ -73,6 +82,7 @@ export function FileManager({
   const [providerLoading, setProviderLoading] = useState(false);
   const [providerError, setProviderError] = useState<unknown>();
   const [reloadKey, setReloadKey] = useState(0);
+  const [activeContextMenu, setActiveContextMenu] = useState<ActiveContextMenu | null>(null);
 
   useEffect(() => {
     if (!dataProvider) {
@@ -92,17 +102,14 @@ export function FileManager({
         return dataProvider.loadFolder(currentFolderId);
       })
       .then((result) => {
-        if (!isCurrent) {
-          return;
-        }
-
-        if (!result) {
+        if (!isCurrent || !result) {
           return;
         }
 
         setProviderItems(result.items);
         setProviderBreadcrumbs(result.breadcrumbs ?? breadcrumbs);
         setInternalSelectedIds([]);
+        setActiveContextMenu(null);
       })
       .catch((error: unknown) => {
         if (!isCurrent) {
@@ -148,6 +155,28 @@ export function FileManager({
   const canDelete = Boolean(onDelete || dataProvider?.deleteItems);
   const canDownload = Boolean(onDownload || dataProvider?.downloadItems);
   const canUpload = Boolean(onUpload || dataProvider?.uploadFiles);
+
+  const builtInContextMenuItems: Array<FileManagerContextMenuItem> = [
+      {
+        id: "open",
+        label: "Open",
+        onSelect: (item) => handleItemOpen(item),
+      },
+      {
+        disabled: (item) => item.type === "folder" || !canDownload,
+        id: "download",
+        label: "Download",
+        onSelect: (item) => handleDownloadItems([item]),
+      },
+      {
+        danger: true,
+        disabled: !canDelete,
+        id: "delete",
+        label: "Delete",
+        onSelect: (item) => handleDeleteItems([item]),
+      },
+    ];
+  const activeContextMenuItems = [...builtInContextMenuItems, ...contextMenuItems];
 
   function refreshProvider() {
     if (dataProvider) {
@@ -235,6 +264,7 @@ export function FileManager({
     setCurrentFolderId(folderId);
     setInternalSearch("");
     setInternalSelectedIds([]);
+    setActiveContextMenu(null);
     onFolderChange?.(folderId);
   }
 
@@ -247,6 +277,8 @@ export function FileManager({
   }
 
   function handleItemOpen(item: FileManagerItem) {
+    setActiveContextMenu(null);
+
     if (item.type === "folder" && dataProvider) {
       handleFolderChange(getItemId(item));
       onItemOpen?.(item);
@@ -282,26 +314,66 @@ export function FileManager({
     }
   }
 
-  function handleDownload() {
+  function handleDownloadItems(itemsToDownload: FileManagerItem[]) {
+    setActiveContextMenu(null);
+
     if (onDownload) {
-      onDownload(selectedItems);
+      onDownload(itemsToDownload);
       return;
     }
 
     if (dataProvider?.downloadItems) {
-      void runProviderAction(() => dataProvider.downloadItems?.(selectedItems, currentFolderId));
+      void runProviderAction(() => dataProvider.downloadItems?.(itemsToDownload, currentFolderId));
     }
   }
 
-  function handleDelete() {
+  function handleDeleteItems(itemsToDelete: FileManagerItem[]) {
+    setActiveContextMenu(null);
+
     if (onDelete) {
-      onDelete(selectedItems);
+      onDelete(itemsToDelete);
       return;
     }
 
     if (dataProvider?.deleteItems) {
-      void runProviderAction(() => dataProvider.deleteItems?.(selectedItems, currentFolderId));
+      void runProviderAction(() => dataProvider.deleteItems?.(itemsToDelete, currentFolderId));
     }
+  }
+
+  function handleContextMenuOpen(item: FileManagerItem, event?: MouseEvent) {
+    event?.preventDefault();
+    setActiveContextMenu({
+      item,
+      x: event?.clientX,
+      y: event?.clientY,
+    });
+    onContextMenuOpen?.(item);
+  }
+
+  function isContextMenuItemDisabled(menuItem: FileManagerContextMenuItem, item: FileManagerItem) {
+    return typeof menuItem.disabled === "function" ? menuItem.disabled(item) : Boolean(menuItem.disabled);
+  }
+
+  function handleContextMenuSelect(menuItem: FileManagerContextMenuItem, item: FileManagerItem) {
+    if (isContextMenuItemDisabled(menuItem, item)) {
+      return;
+    }
+
+    setActiveContextMenu(null);
+    menuItem.onSelect(item);
+  }
+
+  function renderItemActions(item: FileManagerItem) {
+    return (
+      <button
+        aria-label={`Open actions for ${item.name}`}
+        className="rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+        onClick={() => handleContextMenuOpen(item)}
+        type="button"
+      >
+        Actions
+      </button>
+    );
   }
 
   function renderContent() {
@@ -334,16 +406,20 @@ export function FileManager({
                   isSelected ? "border-gray-900 ring-2 ring-gray-200" : "border-gray-200 hover:border-gray-300"
                 }`}
                 key={itemId}
+                onContextMenu={(event) => handleContextMenuOpen(item, event)}
               >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <span aria-hidden="true" className="text-xs font-semibold text-gray-500">{item.type === "folder" ? "DIR" : "FILE"}</span>
-                  <input
-                    aria-label={`Select ${item.name}`}
-                    checked={isSelected}
-                    className="h-4 w-4 rounded border-gray-300"
-                    onChange={() => handleSelectionToggle(item)}
-                    type="checkbox"
-                  />
+                  <div className="flex items-center gap-2">
+                    {renderItemActions(item)}
+                    <input
+                      aria-label={`Select ${item.name}`}
+                      checked={isSelected}
+                      className="h-4 w-4 rounded border-gray-300"
+                      onChange={() => handleSelectionToggle(item)}
+                      type="checkbox"
+                    />
+                  </div>
                 </div>
                 <button
                   className="block w-full truncate text-left text-sm font-medium text-gray-900 hover:underline"
@@ -381,6 +457,7 @@ export function FileManager({
               <th className="px-4 py-3" scope="col">Type</th>
               <th className="px-4 py-3" scope="col">Size</th>
               <th className="px-4 py-3" scope="col">Modified</th>
+              <th className="w-24 px-4 py-3" scope="col">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
@@ -389,7 +466,11 @@ export function FileManager({
               const isSelected = currentSelectedIds.includes(itemId);
 
               return (
-                <tr className={isSelected ? "bg-gray-50" : undefined} key={itemId}>
+                <tr
+                  className={isSelected ? "bg-gray-50" : undefined}
+                  key={itemId}
+                  onContextMenu={(event) => handleContextMenuOpen(item, event)}
+                >
                   <td className="px-4 py-3">
                     <input
                       aria-label={`Select ${item.name}`}
@@ -412,6 +493,7 @@ export function FileManager({
                   <td className="px-4 py-3 text-gray-600">{item.type === "folder" ? "Folder" : item.extension ?? "File"}</td>
                   <td className="px-4 py-3 text-gray-600">{formatFileSize(item.size)}</td>
                   <td className="px-4 py-3 text-gray-600">{formatFileDate(item.modifiedAt)}</td>
+                  <td className="px-4 py-3">{renderItemActions(item)}</td>
                 </tr>
               );
             })}
@@ -422,7 +504,7 @@ export function FileManager({
   }
 
   return (
-    <section aria-label={ariaLabel} className={`overflow-hidden rounded-md border border-gray-200 bg-white ${className}`}>
+    <section aria-label={ariaLabel} className={`relative overflow-hidden rounded-md border border-gray-200 bg-white ${className}`}>
       <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <nav aria-label="Folder path" className="flex flex-wrap items-center gap-1 text-sm text-gray-600">
@@ -448,10 +530,10 @@ export function FileManager({
             <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canUpload || effectiveLoading} onClick={handleUpload} type="button">
               Upload
             </button>
-            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDownload || selectedItems.length === 0 || effectiveLoading} onClick={handleDownload} type="button">
+            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDownload || selectedItems.length === 0 || effectiveLoading} onClick={() => handleDownloadItems(selectedItems)} type="button">
               Download
             </button>
-            <button className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDelete || selectedItems.length === 0 || effectiveLoading} onClick={handleDelete} type="button">
+            <button className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDelete || selectedItems.length === 0 || effectiveLoading} onClick={() => handleDeleteItems(selectedItems)} type="button">
               Delete
             </button>
           </div>
@@ -505,6 +587,43 @@ export function FileManager({
       ) : null}
 
       {renderContent()}
+
+      {activeContextMenu ? (
+        <div className="fixed inset-0 z-40" onClick={() => setActiveContextMenu(null)}>
+          <div
+            aria-label={`Actions for ${activeContextMenu.item.name}`}
+            className="absolute min-w-40 rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg"
+            role="menu"
+            style={{
+              left: activeContextMenu.x ?? undefined,
+              right: activeContextMenu.x === undefined ? 16 : undefined,
+              top: activeContextMenu.y ?? 96,
+            }}
+          >
+            {activeContextMenuItems.map((menuItem) => {
+              const disabled = isContextMenuItemDisabled(menuItem, activeContextMenu.item);
+
+              return (
+                <button
+                  className={`block w-full px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
+                    menuItem.danger ? "text-red-700 hover:bg-red-50" : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                  disabled={disabled}
+                  key={menuItem.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleContextMenuSelect(menuItem, activeContextMenu.item);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  {menuItem.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -516,5 +635,4 @@ function FileManagerState({ label }: { label: ReactNode }) {
     </div>
   );
 }
-
 

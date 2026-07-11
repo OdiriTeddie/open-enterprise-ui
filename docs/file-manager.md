@@ -101,6 +101,34 @@ Search, sort, selected IDs, and view mode can be controlled by the app.
 />
 ```
 
+
+## Context Menu
+
+Each item exposes built-in context menu actions for `Open`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
+
+Add product-specific actions with `contextMenuItems`:
+
+```tsx
+<FileManager
+  items={items}
+  contextMenuItems={[
+    {
+      id: "preview",
+      label: "Preview",
+      onSelect: (item) => openPreview(item),
+    },
+    {
+      id: "audit-log",
+      label: "View audit log",
+      disabled: (item) => item.type === "folder",
+      onSelect: (item) => openAuditLog(item),
+    },
+  ]}
+  onContextMenuOpen={(item) => trackMenuOpen(item)}
+/>
+```
+
+`disabled` can be a boolean or a function of the current item. Use `danger` for destructive custom actions.
 ## Render Slots
 
 Use `renderLoading` and `renderEmpty` when the product needs branded states.
@@ -135,9 +163,12 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `sort` / `defaultSort` / `onSortChange` | Sort state. |
 | `viewMode` / `defaultViewMode` / `onViewModeChange` | `list` or `grid` view. |
 | `onItemOpen` | Called when a file or folder name is activated. |
+| `contextMenuItems` | Custom item-level context menu actions. |
+| `onContextMenuOpen` | Called when an item context menu opens. |
 | `onDownload` / `onDelete` | Called with selected items. |
 | `onUpload` / `onCreateFolder` | Called from toolbar actions. |
 | `renderLoading` / `renderEmpty` | Custom loading and empty states. |
 | `renderError` / `errorMessage` | Custom provider error state. |
+
 
 

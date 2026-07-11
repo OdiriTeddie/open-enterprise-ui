@@ -174,6 +174,75 @@ describe("FileManager", () => {
     expect(await screen.findByText("Could not load: Request failed")).toBeInTheDocument();
     expect(onError).toHaveBeenCalledWith(error);
   });
+
+  it("opens built-in context menu actions from the item actions button", async () => {
+    const user = userEvent.setup();
+    const onDownload = vi.fn();
+    const onDelete = vi.fn();
+
+    render(
+      <FileManager
+        items={items}
+        onDelete={onDelete}
+        onDownload={onDownload}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+
+    expect(screen.getByRole("menu", { name: "Actions for Report.pdf" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "Download" }));
+
+    expect(onDownload).toHaveBeenCalledWith([items[1]]);
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Delete" }));
+
+    expect(onDelete).toHaveBeenCalledWith([items[1]]);
+  });
+
+  it("opens custom context menu actions from right click", async () => {
+    const user = userEvent.setup();
+    const onContextMenuOpen = vi.fn();
+    const onPreview = vi.fn();
+
+    render(
+      <FileManager
+        contextMenuItems={[
+          {
+            id: "preview",
+            label: "Preview",
+            onSelect: onPreview,
+          },
+        ]}
+        items={items}
+        onContextMenuOpen={onContextMenuOpen}
+      />,
+    );
+
+    await user.pointer({
+      keys: "[MouseRight]",
+      target: screen.getByRole("button", { name: "Report.pdf" }),
+    });
+
+    expect(onContextMenuOpen).toHaveBeenCalledWith(items[1]);
+
+    await user.click(screen.getByRole("menuitem", { name: "Preview" }));
+
+    expect(onPreview).toHaveBeenCalledWith(items[1]);
+  });
+
+  it("disables unavailable built-in context menu actions", async () => {
+    const user = userEvent.setup();
+
+    render(<FileManager items={items} />);
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Archive" }));
+
+    expect(screen.getByRole("menuitem", { name: "Download" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
+  });
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager
@@ -215,6 +284,7 @@ describe("FileManager utils", () => {
     ]);
   });
 });
+
 
 
 

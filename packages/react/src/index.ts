@@ -63,6 +63,7 @@ export type {
 export { FileManager, FileManagerExample } from "./components/file-manager";
 export type {
   FileManagerBreadcrumb,
+  FileManagerContextMenuItem,
   FileManagerDataProvider,
   FileManagerLoadResult,
   FileManagerItem,
@@ -75,6 +76,7 @@ export type {
   FileManagerSortState,
   FileManagerViewMode,
 } from "./components/file-manager";
+
 
 
 
