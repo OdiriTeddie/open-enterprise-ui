@@ -538,6 +538,75 @@ describe("FileManager", () => {
     expect(screen.getByText("Owner for Report.pdf")).toBeInTheDocument();
   });
 
+  it("disables toolbar actions with global permissions", async () => {
+    const user = userEvent.setup();
+    const onCreateFolder = vi.fn();
+    const onDelete = vi.fn();
+    const onDownload = vi.fn();
+    const onUpload = vi.fn();
+
+    render(
+      <FileManager
+        items={items}
+        onCreateFolder={onCreateFolder}
+        onDelete={onDelete}
+        onDownload={onDownload}
+        onUpload={onUpload}
+        permissions={{ createFolder: false, delete: false, download: false, upload: false }}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("Select Report.pdf"));
+
+    expect(screen.getByRole("button", { name: "New folder" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Upload" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+  });
+
+  it("applies item-level permissions to built-in context menu actions", async () => {
+    const user = userEvent.setup();
+    const onRename = vi.fn();
+
+    render(
+      <FileManager
+        items={items}
+        onRename={onRename}
+        permissions={{ rename: (item) => item?.id !== "report" }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+
+    expect(screen.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
+
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    expect(screen.queryByRole("dialog", { name: "Rename Report.pdf" })).not.toBeInTheDocument();
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it("prevents selecting items denied by permissions", async () => {
+    const user = userEvent.setup();
+    const onSelectionChange = vi.fn();
+
+    render(
+      <FileManager
+        items={items}
+        onSelectionChange={onSelectionChange}
+        permissions={{ select: (item) => item?.id !== "report" }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Select Report.pdf")).toBeDisabled();
+
+    await user.click(screen.getByLabelText("Select all visible items"));
+
+    expect(screen.queryByText("3 selected")).not.toBeInTheDocument();
+    expect(screen.getByText("2 selected")).toBeInTheDocument();
+    expect(onSelectionChange).not.toHaveBeenCalledWith({ item: items[1], selectedIds: ["report"] });
+  });
+
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager

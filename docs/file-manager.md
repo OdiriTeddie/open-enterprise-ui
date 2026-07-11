@@ -195,6 +195,26 @@ The built-in `Details` context menu action opens a side panel with item metadata
 
 Use `renderDetails` when the product needs richer metadata, permissions, previews, or audit information in the panel.
 
+## Permissions
+
+Use `permissions` to disable built-in actions globally or per item. Each rule can be a boolean or a function that receives the current item.
+
+```tsx
+<FileManager
+  items={items}
+  onDelete={(items) => deleteItems(items)}
+  onRename={(item, name) => renameItem(item, name)}
+  permissions={{
+    delete: currentUser.role === "admin",
+    rename: (item) => item?.type === "file" && !item.path?.startsWith("/locked"),
+    select: (item) => item?.type !== "folder",
+    upload: canUploadToCurrentFolder,
+  }}
+/>
+```
+
+Supported permission keys are `open`, `details`, `select`, `createFolder`, `upload`, `download`, `delete`, `rename`, `copy`, and `move`.
+
 ## Render Slots
 
 Use `renderLoading` and `renderEmpty` when the product needs branded states.
@@ -237,6 +257,7 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `onRename` | Called with the item and new name from the Rename flow. |
 | `onMove` / `onCopy` | Called with the item list and destination folder id. |
 | `destinationFolders` | Folder choices for Move and Copy when not using visible folders as destinations. |
+| `permissions` | Boolean or per-item rules for built-in actions. |
 | `contextMenuItems` | Custom item-level context menu actions. |
 | `onContextMenuOpen` | Called when an item context menu opens. |
 | `renderDetails` | Custom content for the built-in details panel. |

@@ -6,6 +6,7 @@ import type {
   FileManagerFolderOption,
   FileManagerItem,
   FileManagerItemId,
+  FileManagerPermissionAction,
   FileManagerProps,
   FileManagerSortKey,
   FileManagerSortState,
@@ -57,6 +58,7 @@ export function FileManager({
   items = [],
   loading = false,
   noResultsMessage = "No files match your search.",
+  permissions = {},
   onBreadcrumbClick,
   onCopy,
   onContextMenuOpen,
@@ -198,58 +200,72 @@ export function FileManager({
   const canGoUp = effectiveBreadcrumbs.length > 1;
   const canNavigateFolders = Boolean(dataProvider || onFolderChange);
 
-  const canCreateFolder = Boolean(onCreateFolder || dataProvider?.createFolder);
-  const canCopy = Boolean(onCopy || dataProvider?.copyItems);
-  const canDelete = Boolean(onDelete || dataProvider?.deleteItems);
-  const canDownload = Boolean(onDownload || dataProvider?.downloadItems);
-  const canMove = Boolean(onMove || dataProvider?.moveItems);
-  const canRename = Boolean(onRename || dataProvider?.renameItem);
-  const canUpload = Boolean(onUpload || dataProvider?.uploadFiles);
+  const canCreateFolder = Boolean(onCreateFolder || dataProvider?.createFolder) && hasPermission("createFolder");
+  const canCopy = Boolean(onCopy || dataProvider?.copyItems) && hasPermission("copy");
+  const canDelete = Boolean(onDelete || dataProvider?.deleteItems) && hasPermission("delete");
+  const canDownload = Boolean(onDownload || dataProvider?.downloadItems) && hasPermission("download");
+  const canMove = Boolean(onMove || dataProvider?.moveItems) && hasPermission("move");
+  const canRename = Boolean(onRename || dataProvider?.renameItem) && hasPermission("rename");
+  const canUpload = Boolean(onUpload || dataProvider?.uploadFiles) && hasPermission("upload");
+  const selectedItemsCanDownload = selectedItems.length > 0 && selectedItems.every((item) => hasPermission("download", item));
+  const selectedItemsCanDelete = selectedItems.length > 0 && selectedItems.every((item) => hasPermission("delete", item));
 
   const builtInContextMenuItems: Array<FileManagerContextMenuItem> = [
     {
       id: "open",
       label: "Open",
+      disabled: (item) => !hasPermission("open", item),
       onSelect: (item) => handleItemOpen(item),
     },
     {
       id: "details",
+      disabled: (item) => !hasPermission("details", item),
       label: "Details",
       onSelect: (item) => handleDetailsOpen(item),
     },
     {
-      disabled: !canCopy || availableDestinationFolders.length === 0,
+      disabled: (item) => !canCopy || !hasPermission("copy", item) || availableDestinationFolders.length === 0,
       id: "copy",
       label: "Copy",
       onSelect: (item) => handleTransferStart(item, "copy"),
     },
     {
-      disabled: !canMove || availableDestinationFolders.length === 0,
+      disabled: (item) => !canMove || !hasPermission("move", item) || availableDestinationFolders.length === 0,
       id: "move",
       label: "Move",
       onSelect: (item) => handleTransferStart(item, "move"),
     },
     {
-      disabled: !canRename,
+      disabled: (item) => !canRename || !hasPermission("rename", item),
       id: "rename",
       label: "Rename",
       onSelect: (item) => handleRenameStart(item),
     },
     {
-      disabled: (item) => item.type === "folder" || !canDownload,
+      disabled: (item) => item.type === "folder" || !canDownload || !hasPermission("download", item),
       id: "download",
       label: "Download",
       onSelect: (item) => handleDownloadItems([item]),
     },
     {
       danger: true,
-      disabled: !canDelete,
+      disabled: (item) => !canDelete || !hasPermission("delete", item),
       id: "delete",
       label: "Delete",
       onSelect: (item) => handleDeleteItems([item]),
     },
   ];
   const activeContextMenuItems = [...builtInContextMenuItems, ...contextMenuItems];
+
+  function hasPermission(action: FileManagerPermissionAction, item?: FileManagerItem) {
+    const rule = permissions[action];
+
+    if (typeof rule === "function") {
+      return rule(item);
+    }
+
+    return rule ?? true;
+  }
 
   function refreshProvider() {
     if (dataProvider) {
@@ -313,6 +329,10 @@ export function FileManager({
   }
 
   function handleSelectionToggle(item: FileManagerItem) {
+    if (!hasPermission("select", item)) {
+      return;
+    }
+
     const itemId = getItemId(item);
     const nextSelectedIds = toggleSelection(currentSelectedIds, itemId);
 
@@ -324,8 +344,9 @@ export function FileManager({
   }
 
   function handleSelectAll() {
-    const visibleIds = visibleItems.map(getItemId);
-    const allVisibleSelected = visibleIds.every((itemId) => currentSelectedIds.includes(itemId));
+    const selectableItems = visibleItems.filter((item) => hasPermission("select", item));
+    const visibleIds = selectableItems.map(getItemId);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((itemId) => currentSelectedIds.includes(itemId));
     const nextSelectedIds = allVisibleSelected
       ? currentSelectedIds.filter((itemId) => !visibleIds.includes(itemId))
       : Array.from(new Set([...currentSelectedIds, ...visibleIds]));
@@ -398,6 +419,10 @@ export function FileManager({
   }
 
   function handleItemOpen(item: FileManagerItem) {
+    if (!hasPermission("open", item)) {
+      return;
+    }
+
     setActiveContextMenu(null);
 
     if (item.type === "folder" && canNavigateFolders) {
@@ -414,6 +439,10 @@ export function FileManager({
   }
 
   function handleCreateFolder() {
+    if (!hasPermission("createFolder")) {
+      return;
+    }
+
     if (onCreateFolder) {
       onCreateFolder();
       return;
@@ -425,6 +454,10 @@ export function FileManager({
   }
 
   function handleUpload() {
+    if (!hasPermission("upload")) {
+      return;
+    }
+
     setUploadDialogOpen(true);
     setUploadFiles([]);
     setUploadError(undefined);
@@ -458,6 +491,10 @@ export function FileManager({
   }
 
   function handleDownloadItems(itemsToDownload: FileManagerItem[]) {
+    if (!itemsToDownload.every((item) => hasPermission("download", item))) {
+      return;
+    }
+
     setActiveContextMenu(null);
 
     if (onDownload) {
@@ -471,6 +508,10 @@ export function FileManager({
   }
 
   function handleDeleteItems(itemsToDelete: FileManagerItem[]) {
+    if (!itemsToDelete.every((item) => hasPermission("delete", item))) {
+      return;
+    }
+
     setActiveContextMenu(null);
 
     if (onDelete) {
@@ -484,6 +525,10 @@ export function FileManager({
   }
 
   function handleTransferStart(item: FileManagerItem, mode: "copy" | "move") {
+    if (!hasPermission(mode, item)) {
+      return;
+    }
+
     setActiveContextMenu(null);
     setTransferDialog({ item, mode });
     setTransferDestinationId("");
@@ -526,6 +571,10 @@ export function FileManager({
     }
   }
   function handleRenameStart(item: FileManagerItem) {
+    if (!hasPermission("rename", item)) {
+      return;
+    }
+
     setActiveContextMenu(null);
     setRenameItem(item);
     setRenameValue(item.name);
@@ -567,6 +616,10 @@ export function FileManager({
   }
 
   function handleDetailsOpen(item: FileManagerItem) {
+    if (!hasPermission("details", item)) {
+      return;
+    }
+
     setActiveContextMenu(null);
     setDetailsItem(item);
     onDetailsOpen?.(item);
@@ -653,6 +706,7 @@ export function FileManager({
                       aria-label={`Select ${item.name}`}
                       checked={isSelected}
                       className="h-4 w-4 rounded border-gray-300"
+                      disabled={!hasPermission("select", item)}
                       onChange={() => handleSelectionToggle(item)}
                       type="checkbox"
                     />
@@ -684,8 +738,9 @@ export function FileManager({
               <th className="w-10 px-4 py-3" scope="col">
                 <input
                   aria-label="Select all visible items"
-                  checked={visibleItems.length > 0 && visibleItems.every((item) => currentSelectedIds.includes(getItemId(item)))}
+                  checked={visibleItems.some((item) => hasPermission("select", item)) && visibleItems.filter((item) => hasPermission("select", item)).every((item) => currentSelectedIds.includes(getItemId(item)))}
                   className="h-4 w-4 rounded border-gray-300"
+                  disabled={!visibleItems.some((item) => hasPermission("select", item))}
                   onChange={handleSelectAll}
                   type="checkbox"
                 />
@@ -713,6 +768,7 @@ export function FileManager({
                       aria-label={`Select ${item.name}`}
                       checked={isSelected}
                       className="h-4 w-4 rounded border-gray-300"
+                      disabled={!hasPermission("select", item)}
                       onChange={() => handleSelectionToggle(item)}
                       type="checkbox"
                     />
@@ -780,10 +836,10 @@ export function FileManager({
             <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canUpload || effectiveLoading} onClick={handleUpload} type="button">
               Upload
             </button>
-            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDownload || selectedItems.length === 0 || effectiveLoading} onClick={() => handleDownloadItems(selectedItems)} type="button">
+            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDownload || !selectedItemsCanDownload || effectiveLoading} onClick={() => handleDownloadItems(selectedItems)} type="button">
               Download
             </button>
-            <button className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDelete || selectedItems.length === 0 || effectiveLoading} onClick={() => handleDeleteItems(selectedItems)} type="button">
+            <button className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canDelete || !selectedItemsCanDelete || effectiveLoading} onClick={() => handleDeleteItems(selectedItems)} type="button">
               Delete
             </button>
           </div>

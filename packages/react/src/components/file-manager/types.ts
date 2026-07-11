@@ -48,6 +48,22 @@ export type FileManagerContextMenuItem = {
   onSelect: (item: FileManagerItem) => void;
 };
 
+export type FileManagerPermissionAction =
+  | "copy"
+  | "createFolder"
+  | "delete"
+  | "details"
+  | "download"
+  | "move"
+  | "open"
+  | "rename"
+  | "select"
+  | "upload";
+
+export type FileManagerPermissionRule = boolean | ((item?: FileManagerItem) => boolean);
+
+export type FileManagerPermissions = Partial<Record<FileManagerPermissionAction, FileManagerPermissionRule>>;
+
 export type FileManagerLoadResult = {
   breadcrumbs?: FileManagerBreadcrumb[];
   items: FileManagerItem[];
@@ -83,6 +99,7 @@ export type FileManagerProps = {
   items?: FileManagerItem[];
   loading?: boolean;
   noResultsMessage?: ReactNode;
+  permissions?: FileManagerPermissions;
   onBreadcrumbClick?: (breadcrumb: FileManagerBreadcrumb, index: number) => void;
   onCopy?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId) => void | Promise<void>;
   onCreateFolder?: () => void;
