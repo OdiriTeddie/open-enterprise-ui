@@ -53,6 +53,7 @@ export type FileManagerDataProvider = {
   downloadItems?: (items: FileManagerItem[], folderId?: FileManagerItemId) => void | Promise<void>;
   loadFolder: (folderId?: FileManagerItemId) => FileManagerLoadResult | Promise<FileManagerLoadResult>;
   openFile?: (item: FileManagerItem, folderId?: FileManagerItemId) => void | Promise<void>;
+  renameItem?: (item: FileManagerItem, name: string, folderId?: FileManagerItemId) => void | Promise<void>;
   uploadFiles?: (folderId?: FileManagerItemId) => void | Promise<void>;
 };
 
@@ -80,6 +81,7 @@ export type FileManagerProps = {
   onFolderChange?: (folderId?: FileManagerItemId) => void;
   onContextMenuOpen?: (item: FileManagerItem) => void;
   onItemOpen?: (item: FileManagerItem) => void;
+  onRename?: (item: FileManagerItem, name: string) => void | Promise<void>;
   onSearchChange?: (query: string) => void;
   onSelectionChange?: (change: FileManagerSelectionChange) => void;
   onSortChange?: (sort: FileManagerSortState) => void;
@@ -94,4 +96,5 @@ export type FileManagerProps = {
   sort?: FileManagerSortState;
   viewMode?: FileManagerViewMode;
 };
+
 

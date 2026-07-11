@@ -57,6 +57,7 @@ export function FileManager({
   onError,
   onFolderChange,
   onItemOpen,
+  onRename,
   onSearchChange,
   onSelectionChange,
   onSortChange,
@@ -83,6 +84,9 @@ export function FileManager({
   const [providerError, setProviderError] = useState<unknown>();
   const [reloadKey, setReloadKey] = useState(0);
   const [activeContextMenu, setActiveContextMenu] = useState<ActiveContextMenu | null>(null);
+  const [renameItem, setRenameItem] = useState<FileManagerItem | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameError, setRenameError] = useState<string | undefined>();
 
   useEffect(() => {
     if (!dataProvider) {
@@ -154,6 +158,7 @@ export function FileManager({
   const canCreateFolder = Boolean(onCreateFolder || dataProvider?.createFolder);
   const canDelete = Boolean(onDelete || dataProvider?.deleteItems);
   const canDownload = Boolean(onDownload || dataProvider?.downloadItems);
+  const canRename = Boolean(onRename || dataProvider?.renameItem);
   const canUpload = Boolean(onUpload || dataProvider?.uploadFiles);
 
   const builtInContextMenuItems: Array<FileManagerContextMenuItem> = [
@@ -161,6 +166,11 @@ export function FileManager({
         id: "open",
         label: "Open",
         onSelect: (item) => handleItemOpen(item),
+      },      {
+        disabled: !canRename,
+        id: "rename",
+        label: "Rename",
+        onSelect: (item) => handleRenameStart(item),
       },
       {
         disabled: (item) => item.type === "folder" || !canDownload,
@@ -337,6 +347,47 @@ export function FileManager({
 
     if (dataProvider?.deleteItems) {
       void runProviderAction(() => dataProvider.deleteItems?.(itemsToDelete, currentFolderId));
+    }
+  }
+
+  function handleRenameStart(item: FileManagerItem) {
+    setActiveContextMenu(null);
+    setRenameItem(item);
+    setRenameValue(item.name);
+    setRenameError(undefined);
+  }
+
+  async function handleRenameSubmit() {
+    if (!renameItem) {
+      return;
+    }
+
+    const nextName = renameValue.trim();
+
+    if (!nextName) {
+      setRenameError("Name is required.");
+      return;
+    }
+
+    if (nextName === renameItem.name) {
+      setRenameItem(null);
+      return;
+    }
+
+    try {
+      setRenameError(undefined);
+
+      if (onRename) {
+        await onRename(renameItem, nextName);
+      } else if (dataProvider?.renameItem) {
+        await dataProvider.renameItem(renameItem, nextName, currentFolderId);
+        refreshProvider();
+      }
+
+      setRenameItem(null);
+    } catch (error) {
+      setRenameError("Unable to rename item.");
+      onError?.(error);
     }
   }
 
@@ -624,6 +675,32 @@ export function FileManager({
           </div>
         </div>
       ) : null}
+      {renameItem ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
+          <div aria-label={`Rename ${renameItem.name}`} className="w-full max-w-sm rounded-md bg-white p-4 shadow-lg" role="dialog">
+            <h2 className="text-base font-semibold text-gray-900">Rename</h2>
+            <label className="mt-3 block text-sm font-medium text-gray-700" htmlFor={`${searchInputId}-rename`}>
+              Name
+            </label>
+            <input
+              autoFocus
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
+              id={`${searchInputId}-rename`}
+              onChange={(event) => setRenameValue(event.target.value)}
+              value={renameValue}
+            />
+            {renameError ? <div className="mt-2 text-sm text-red-700" role="alert">{renameError}</div> : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700" onClick={() => setRenameItem(null)} type="button">
+                Cancel
+              </button>
+              <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white" onClick={() => void handleRenameSubmit()} type="button">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -635,4 +712,7 @@ function FileManagerState({ label }: { label: ReactNode }) {
     </div>
   );
 }
+
+
+
 

@@ -243,6 +243,62 @@ describe("FileManager", () => {
     expect(screen.getByRole("menuitem", { name: "Download" })).toBeDisabled();
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
   });
+
+  it("renames an item from the context menu", async () => {
+    const user = userEvent.setup();
+    const onRename = vi.fn();
+
+    render(<FileManager items={items} onRename={onRename} />);
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    expect(screen.getByRole("dialog", { name: "Rename Report.pdf" })).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Updated report.pdf");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onRename).toHaveBeenCalledWith(items[1], "Updated report.pdf");
+    expect(screen.queryByRole("dialog", { name: "Rename Report.pdf" })).not.toBeInTheDocument();
+  });
+
+  it("validates rename names", async () => {
+    const user = userEvent.setup();
+    const onRename = vi.fn();
+
+    render(<FileManager items={items} onRename={onRename} />);
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+    await user.clear(screen.getByLabelText("Name"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Name is required.");
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it("uses provider rename and refreshes the folder", async () => {
+    const user = userEvent.setup();
+    const renameItem = vi.fn().mockResolvedValue(undefined);
+    const loadFolder = vi
+      .fn()
+      .mockResolvedValueOnce({ items: [items[1]] })
+      .mockResolvedValueOnce({
+        items: [{ ...items[1], name: "Updated report.pdf" }],
+      });
+
+    render(<FileManager dataProvider={{ loadFolder, renameItem }} />);
+
+    await user.click(await screen.findByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Updated report.pdf");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(renameItem).toHaveBeenCalledWith(items[1], "Updated report.pdf", undefined));
+    expect(await screen.findByRole("button", { name: "Updated report.pdf" })).toBeInTheDocument();
+  });
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager
@@ -284,6 +340,7 @@ describe("FileManager utils", () => {
     ]);
   });
 });
+
 
 
 

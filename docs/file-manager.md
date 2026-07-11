@@ -55,6 +55,9 @@ const dataProvider = {
   async deleteItems(items, folderId) {
     await api.files.delete(items.map((item) => item.id));
   },
+  async renameItem(item, name, folderId) {
+    await api.files.rename(item.id, name);
+  },
   async downloadItems(items) {
     await api.files.download(items.map((item) => item.id));
   },
@@ -79,6 +82,7 @@ Provider methods:
 | `createFolder(folderId)` | Called by the New folder toolbar action. |
 | `uploadFiles(folderId)` | Called by the Upload toolbar action. |
 | `downloadItems(items, folderId)` | Called with selected items. |
+| `renameItem(item, name, folderId)` | Called from the Rename context menu flow, then refreshes. |
 | `deleteItems(items, folderId)` | Called with selected items, then refreshes. |
 | `openFile(item, folderId)` | Called when opening a file. |
 
@@ -104,7 +108,7 @@ Search, sort, selected IDs, and view mode can be controlled by the app.
 
 ## Context Menu
 
-Each item exposes built-in context menu actions for `Open`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
+Each item exposes built-in context menu actions for `Open`, `Rename`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
 
 Add product-specific actions with `contextMenuItems`:
 
@@ -163,12 +167,14 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `sort` / `defaultSort` / `onSortChange` | Sort state. |
 | `viewMode` / `defaultViewMode` / `onViewModeChange` | `list` or `grid` view. |
 | `onItemOpen` | Called when a file or folder name is activated. |
+| `onRename` | Called with the item and new name from the Rename flow. |
 | `contextMenuItems` | Custom item-level context menu actions. |
 | `onContextMenuOpen` | Called when an item context menu opens. |
 | `onDownload` / `onDelete` | Called with selected items. |
 | `onUpload` / `onCreateFolder` | Called from toolbar actions. |
 | `renderLoading` / `renderEmpty` | Custom loading and empty states. |
 | `renderError` / `errorMessage` | Custom provider error state. |
+
 
 
 
