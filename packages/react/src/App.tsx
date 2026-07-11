@@ -1,7 +1,8 @@
-import {
+﻿import {
   DataGridExample,
   ServerSideDataGridExample,
 } from "./components/data-grid";
+import { FileManagerExample } from "./components/file-manager";
 import { FormExample } from "./components/form";
 
 function App() {
@@ -12,6 +13,13 @@ function App() {
           Form primitives
         </h1>
         <FormExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          File Manager
+        </h1>
+        <FileManagerExample />
       </section>
 
       <section>
@@ -32,3 +40,4 @@ function App() {
 }
 
 export default App;
+

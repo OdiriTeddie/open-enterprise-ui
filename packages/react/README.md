@@ -1,8 +1,8 @@
-# `@open-enterprise-ui/react`
+﻿# `@open-enterprise-ui/react`
 
 React components for Open Enterprise UI.
 
-This package is early-stage and currently includes a typed `DataGrid` for data-heavy interfaces and form primitives for enterprise workflows.
+This package is early-stage and currently includes a typed `DataGrid`, form primitives, and a `FileManager` for enterprise workflows.
 
 ## Installation
 
@@ -52,7 +52,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - Textarea
 - Select
 - Checkbox
-- FormBuilder
+- FormBuilder`r`n- FileManager
 
 ## DataGrid Features
 
@@ -73,7 +73,7 @@ export function UsersTable({ users }: { users: User[] }) {
 
 - [DataGrid API](../../docs/data-grid.md)
 - [Server-side DataGrid mode](../../docs/data-grid.md#server-side-mode)
-- [Form primitives](../../docs/form.md)
+- [Form primitives](../../docs/form.md)`r`n- [File Manager API](../../docs/file-manager.md)
 
 ## Development
 
@@ -86,5 +86,7 @@ pnpm --filter @open-enterprise-ui/react lint
 pnpm --filter @open-enterprise-ui/react test
 pnpm --filter @open-enterprise-ui/react build
 ```
+
+
 
 

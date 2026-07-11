@@ -1,4 +1,4 @@
-export { DataGrid } from "./components/data-grid";
+﻿export { DataGrid } from "./components/data-grid";
 export type {
   CellContext,
   Column,
@@ -60,3 +60,21 @@ export type {
   UseFormOptions,
   TextInputSize,
 } from "./components/form";
+export { FileManager, FileManagerExample } from "./components/file-manager";
+export type {
+  FileManagerBreadcrumb,
+  FileManagerDataProvider,
+  FileManagerLoadResult,
+  FileManagerItem,
+  FileManagerItemId,
+  FileManagerItemType,
+  FileManagerProps,
+  FileManagerSelectionChange,
+  FileManagerSortDirection,
+  FileManagerSortKey,
+  FileManagerSortState,
+  FileManagerViewMode,
+} from "./components/file-manager";
+
+
+
