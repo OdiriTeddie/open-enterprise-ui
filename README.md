@@ -2,13 +2,13 @@
 
 Open-source UI components for teams building internal tools, admin panels, dashboards, and data-heavy products.
 
-The project currently starts with the React package and a typed `DataGrid`. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
+The project currently ships a React package with enterprise-focused `DataGrid`, form primitives/Form Builder, and `FileManager` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
 
 ## Packages
 
 | Package | Status | Description |
 | --- | --- | --- |
-| `@open-enterprise-ui/react` | Early development | React components, starting with `DataGrid`. |
+| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, forms, and `FileManager`. |
 | `@open-enterprise-ui/vue` | Planned | Vue components. |
 
 ## Goals
@@ -27,6 +27,12 @@ pnpm add @open-enterprise-ui/react
 ```
 
 React is a peer dependency, so your app should already provide `react` and `react-dom`.
+
+## Components
+
+- `DataGrid`: typed columns, sorting, filtering, pagination, selection, column resizing, server-side hooks, and row virtualization.
+- `Form` / `FormBuilder`: accessible form layout, schema-driven forms, validation, async options, dirty state, and server error mapping.
+- `FileManager`: provider-backed folder browsing, context menus, rename/move/copy/upload flows, details panel, permissions, keyboard accessibility, and virtualization.
 
 ## Usage
 
@@ -75,6 +81,8 @@ export function UsersTable({ users }: { users: User[] }) {
 ## Documentation
 
 - [DataGrid API](./docs/data-grid.md)
+- [Form API](./docs/form.md)
+- [File Manager API](./docs/file-manager.md)
 
 ## Repository Structure
 
@@ -119,11 +127,9 @@ pnpm --filter @open-enterprise-ui/react dev
 
 ## Roadmap
 
-- DataGrid column resizing, server-side workflows, and richer docs examples.
-- Form controls for enterprise workflows.
-- Navigation, tabs, modals, and command surfaces.
-- Dashboard and data-display components.
-- Stronger accessibility coverage and interaction tests.
+- Continue hardening DataGrid, Form, and FileManager APIs with accessibility and integration tests.
+- Add navigation, tabs, modals, command surfaces, and dashboard/data-display components.
+- Expand server-side examples and production usage recipes.
 - Shared foundations for future framework packages.
 
 ## Contributing
