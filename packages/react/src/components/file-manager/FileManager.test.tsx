@@ -1,4 +1,4 @@
-﻿import { render, screen, waitFor } from "@testing-library/react";
+﻿import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FileManager } from "./FileManager";
@@ -299,6 +299,114 @@ describe("FileManager", () => {
     await waitFor(() => expect(renameItem).toHaveBeenCalledWith(items[1], "Updated report.pdf", undefined));
     expect(await screen.findByRole("button", { name: "Updated report.pdf" })).toBeInTheDocument();
   });
+
+  it("copies an item to a selected destination", async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+
+    render(
+      <FileManager
+        destinationFolders={[{ id: "archive", label: "Archive" }]}
+        items={items}
+        onCopy={onCopy}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Copy" }));
+    await user.selectOptions(screen.getByLabelText("Destination"), "archive");
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+
+    expect(onCopy).toHaveBeenCalledWith([items[1]], "archive");
+  });
+
+  it("validates move destination", async () => {
+    const user = userEvent.setup();
+    const onMove = vi.fn();
+
+    render(
+      <FileManager
+        destinationFolders={[{ id: "archive", label: "Archive" }]}
+        items={items}
+        onMove={onMove}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Move" }));
+    await user.click(screen.getByRole("button", { name: "Move" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Choose a destination folder.");
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("uses provider move and refreshes the folder", async () => {
+    const user = userEvent.setup();
+    const moveItems = vi.fn().mockResolvedValue(undefined);
+    const loadFolder = vi
+      .fn()
+      .mockResolvedValueOnce({ items: [items[0], items[1]] })
+      .mockResolvedValueOnce({ items: [items[0]] });
+
+    render(<FileManager dataProvider={{ loadFolder, moveItems }} />);
+
+    await user.click(await screen.findByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Move" }));
+    await user.selectOptions(screen.getByLabelText("Destination"), "archive");
+    await user.click(screen.getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(moveItems).toHaveBeenCalledWith([items[1]], "archive", undefined));
+    await waitFor(() => expect(loadFolder).toHaveBeenCalledTimes(2));
+  });
+
+  it("uploads selected files", async () => {
+    const user = userEvent.setup();
+    const onUpload = vi.fn();
+    const file = new File(["report"], "report.pdf", { type: "application/pdf" });
+
+    render(<FileManager items={items} onUpload={onUpload} />);
+
+    await user.click(screen.getByRole("button", { name: "Upload" }));
+    await user.upload(screen.getByLabelText(/select files/i), file);
+
+    expect(screen.getByText("report.pdf")).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole("dialog", { name: "Upload files" })).getByRole("button", { name: "Upload" }));
+
+    expect(onUpload).toHaveBeenCalledWith([file]);
+  });
+
+  it("validates upload file selection", async () => {
+    const user = userEvent.setup();
+    const onUpload = vi.fn();
+
+    render(<FileManager items={items} onUpload={onUpload} />);
+
+    await user.click(screen.getByRole("button", { name: "Upload" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Upload files" })).getByRole("button", { name: "Upload" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Choose at least one file.");
+    expect(onUpload).not.toHaveBeenCalled();
+  });
+
+  it("uses provider upload and refreshes the folder", async () => {
+    const user = userEvent.setup();
+    const file = new File(["budget"], "budget.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const uploadFiles = vi.fn().mockResolvedValue(undefined);
+    const loadFolder = vi
+      .fn()
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({ items: [items[2]] });
+
+    render(<FileManager dataProvider={{ loadFolder, uploadFiles }} />);
+
+    await user.click(screen.getByRole("button", { name: "Upload" }));
+    await user.upload(screen.getByLabelText(/select files/i), file);
+    await user.click(within(screen.getByRole("dialog", { name: "Upload files" })).getByRole("button", { name: "Upload" }));
+
+    await waitFor(() => expect(uploadFiles).toHaveBeenCalledWith([file], undefined));
+    await waitFor(() => expect(loadFolder).toHaveBeenCalledTimes(2));
+  });
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager
@@ -340,6 +448,9 @@ describe("FileManager utils", () => {
     ]);
   });
 });
+
+
+
 
 
 

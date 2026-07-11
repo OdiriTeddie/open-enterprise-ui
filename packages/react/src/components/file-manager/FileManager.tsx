@@ -3,6 +3,7 @@ import type { MouseEvent, ReactNode } from "react";
 import type {
   FileManagerBreadcrumb,
   FileManagerContextMenuItem,
+  FileManagerFolderOption,
   FileManagerItem,
   FileManagerItemId,
   FileManagerProps,
@@ -33,12 +34,18 @@ type ActiveContextMenu = {
   y?: number;
 };
 
+type TransferDialog = {
+  item: FileManagerItem;
+  mode: "copy" | "move";
+};
+
 export function FileManager({
   ariaLabel = "File manager",
   breadcrumbs = defaultBreadcrumbs,
   className = "",
   contextMenuItems = [],
   dataProvider,
+  destinationFolders,
   defaultFolderId,
   defaultSelectedIds = [],
   defaultSort = { direction: "asc", key: "name" },
@@ -50,12 +57,14 @@ export function FileManager({
   loading = false,
   noResultsMessage = "No files match your search.",
   onBreadcrumbClick,
+  onCopy,
   onContextMenuOpen,
   onCreateFolder,
   onDelete,
   onDownload,
   onError,
   onFolderChange,
+  onMove,
   onItemOpen,
   onRename,
   onSearchChange,
@@ -87,6 +96,13 @@ export function FileManager({
   const [renameItem, setRenameItem] = useState<FileManagerItem | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState<string | undefined>();
+  const [transferDialog, setTransferDialog] = useState<TransferDialog | null>(null);
+  const [transferDestinationId, setTransferDestinationId] = useState<FileManagerItemId | "">("");
+  const [transferError, setTransferError] = useState<string | undefined>();
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadError, setUploadError] = useState<string | undefined>();
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!dataProvider) {
@@ -155,9 +171,24 @@ export function FileManager({
   const hasSearch = currentSearch.trim().length > 0;
   const isEmpty = effectiveItems.length === 0;
   const hasNoResults = effectiveItems.length > 0 && visibleItems.length === 0;
+  const availableDestinationFolders = useMemo<Array<FileManagerFolderOption>>(
+    () =>
+      destinationFolders ??
+      effectiveItems
+        .filter((item) => item.type === "folder")
+        .map((item) => ({
+          id: getItemId(item),
+          label: item.name,
+          path: item.path,
+        })),
+    [destinationFolders, effectiveItems, getItemId],
+  );
+
   const canCreateFolder = Boolean(onCreateFolder || dataProvider?.createFolder);
+  const canCopy = Boolean(onCopy || dataProvider?.copyItems);
   const canDelete = Boolean(onDelete || dataProvider?.deleteItems);
   const canDownload = Boolean(onDownload || dataProvider?.downloadItems);
+  const canMove = Boolean(onMove || dataProvider?.moveItems);
   const canRename = Boolean(onRename || dataProvider?.renameItem);
   const canUpload = Boolean(onUpload || dataProvider?.uploadFiles);
 
@@ -166,7 +197,20 @@ export function FileManager({
         id: "open",
         label: "Open",
         onSelect: (item) => handleItemOpen(item),
-      },      {
+      },
+      {
+        disabled: !canCopy || availableDestinationFolders.length === 0,
+        id: "copy",
+        label: "Copy",
+        onSelect: (item) => handleTransferStart(item, "copy"),
+      },
+      {
+        disabled: !canMove || availableDestinationFolders.length === 0,
+        id: "move",
+        label: "Move",
+        onSelect: (item) => handleTransferStart(item, "move"),
+      },
+      {
         disabled: !canRename,
         id: "rename",
         label: "Rename",
@@ -314,13 +358,35 @@ export function FileManager({
   }
 
   function handleUpload() {
-    if (onUpload) {
-      onUpload();
+    setUploadDialogOpen(true);
+    setUploadFiles([]);
+    setUploadError(undefined);
+  }
+
+  async function handleUploadSubmit() {
+    if (uploadFiles.length === 0) {
+      setUploadError("Choose at least one file.");
       return;
     }
 
-    if (dataProvider?.uploadFiles) {
-      void runProviderAction(() => dataProvider.uploadFiles?.(currentFolderId));
+    try {
+      setUploading(true);
+      setUploadError(undefined);
+
+      if (onUpload) {
+        await onUpload(uploadFiles);
+      } else if (dataProvider?.uploadFiles) {
+        await dataProvider.uploadFiles(uploadFiles, currentFolderId);
+        refreshProvider();
+      }
+
+      setUploadDialogOpen(false);
+      setUploadFiles([]);
+    } catch (error) {
+      setUploadError("Unable to upload files.");
+      onError?.(error);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -350,6 +416,48 @@ export function FileManager({
     }
   }
 
+  function handleTransferStart(item: FileManagerItem, mode: "copy" | "move") {
+    setActiveContextMenu(null);
+    setTransferDialog({ item, mode });
+    setTransferDestinationId("");
+    setTransferError(undefined);
+  }
+
+  async function handleTransferSubmit() {
+    if (!transferDialog) {
+      return;
+    }
+
+    if (!transferDestinationId) {
+      setTransferError("Choose a destination folder.");
+      return;
+    }
+
+    const itemsToTransfer = [transferDialog.item];
+
+    try {
+      setTransferError(undefined);
+
+      if (transferDialog.mode === "copy") {
+        if (onCopy) {
+          await onCopy(itemsToTransfer, transferDestinationId);
+        } else if (dataProvider?.copyItems) {
+          await dataProvider.copyItems(itemsToTransfer, transferDestinationId, currentFolderId);
+          refreshProvider();
+        }
+      } else if (onMove) {
+        await onMove(itemsToTransfer, transferDestinationId);
+      } else if (dataProvider?.moveItems) {
+        await dataProvider.moveItems(itemsToTransfer, transferDestinationId, currentFolderId);
+        refreshProvider();
+      }
+
+      setTransferDialog(null);
+    } catch (error) {
+      setTransferError(`Unable to ${transferDialog.mode} item.`);
+      onError?.(error);
+    }
+  }
   function handleRenameStart(item: FileManagerItem) {
     setActiveContextMenu(null);
     setRenameItem(item);
@@ -675,6 +783,82 @@ export function FileManager({
           </div>
         </div>
       ) : null}
+
+
+      {uploadDialogOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
+          <div aria-label="Upload files" className="w-full max-w-md rounded-md bg-white p-4 shadow-lg" role="dialog">
+            <h2 className="text-base font-semibold text-gray-900">Upload files</h2>
+            <p className="mt-1 text-sm text-gray-600">Choose one or more files to upload to this folder.</p>
+            <label className="mt-3 flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600 hover:border-gray-400" htmlFor={`${searchInputId}-upload`}>
+              <span className="font-medium text-gray-900">Select files</span>
+              <span className="mt-1">Drag files here in your app, or browse from your device.</span>
+            </label>
+            <input
+              className="sr-only"
+              id={`${searchInputId}-upload`}
+              multiple
+              onChange={(event) => {
+                setUploadFiles(Array.from(event.target.files ?? []));
+                setUploadError(undefined);
+              }}
+              type="file"
+            />
+            {uploadFiles.length > 0 ? (
+              <ul className="mt-3 max-h-32 space-y-1 overflow-auto text-sm text-gray-700">
+                {uploadFiles.map((file) => (
+                  <li className="flex justify-between gap-3 rounded bg-gray-50 px-2 py-1" key={`${file.name}-${file.size}`}>
+                    <span className="truncate">{file.name}</span>
+                    <span className="shrink-0 text-gray-500">{formatFileSize(file.size)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {uploadError ? <div className="mt-2 text-sm text-red-700" role="alert">{uploadError}</div> : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={uploading} onClick={() => setUploadDialogOpen(false)} type="button">
+                Cancel
+              </button>
+              <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={uploading} onClick={() => void handleUploadSubmit()} type="button">
+                {uploading ? "Uploading..." : "Upload"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {transferDialog ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
+          <div aria-label={`${transferDialog.mode === "copy" ? "Copy" : "Move"} ${transferDialog.item.name}`} className="w-full max-w-sm rounded-md bg-white p-4 shadow-lg" role="dialog">
+            <h2 className="text-base font-semibold text-gray-900">{transferDialog.mode === "copy" ? "Copy" : "Move"}</h2>
+            <p className="mt-1 text-sm text-gray-600">Choose a destination for {transferDialog.item.name}.</p>
+            <label className="mt-3 block text-sm font-medium text-gray-700" htmlFor={`${searchInputId}-transfer`}>
+              Destination
+            </label>
+            <select
+              className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
+              id={`${searchInputId}-transfer`}
+              onChange={(event) => setTransferDestinationId(event.target.value)}
+              value={String(transferDestinationId)}
+            >
+              <option value="">Choose folder</option>
+              {availableDestinationFolders
+                .filter((folder) => folder.id !== getItemId(transferDialog.item))
+                .map((folder) => (
+                  <option key={folder.id} value={folder.id}>{folder.label}</option>
+                ))}
+            </select>
+            {transferError ? <div className="mt-2 text-sm text-red-700" role="alert">{transferError}</div> : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700" onClick={() => setTransferDialog(null)} type="button">
+                Cancel
+              </button>
+              <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white" onClick={() => void handleTransferSubmit()} type="button">
+                {transferDialog.mode === "copy" ? "Copy" : "Move"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {renameItem ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
           <div aria-label={`Rename ${renameItem.name}`} className="w-full max-w-sm rounded-md bg-white p-4 shadow-lg" role="dialog">
@@ -712,6 +896,9 @@ function FileManagerState({ label }: { label: ReactNode }) {
     </div>
   );
 }
+
+
+
 
 
 

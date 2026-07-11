@@ -34,6 +34,12 @@ export type FileManagerSelectionChange = {
   selectedIds: FileManagerItemId[];
 };
 
+export type FileManagerFolderOption = {
+  id: FileManagerItemId;
+  label: ReactNode;
+  path?: string;
+};
+
 export type FileManagerContextMenuItem = {
   danger?: boolean;
   disabled?: boolean | ((item: FileManagerItem) => boolean);
@@ -50,11 +56,13 @@ export type FileManagerLoadResult = {
 export type FileManagerDataProvider = {
   createFolder?: (folderId?: FileManagerItemId) => void | Promise<void>;
   deleteItems?: (items: FileManagerItem[], folderId?: FileManagerItemId) => void | Promise<void>;
+  copyItems?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId, folderId?: FileManagerItemId) => void | Promise<void>;
   downloadItems?: (items: FileManagerItem[], folderId?: FileManagerItemId) => void | Promise<void>;
   loadFolder: (folderId?: FileManagerItemId) => FileManagerLoadResult | Promise<FileManagerLoadResult>;
+  moveItems?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId, folderId?: FileManagerItemId) => void | Promise<void>;
   openFile?: (item: FileManagerItem, folderId?: FileManagerItemId) => void | Promise<void>;
   renameItem?: (item: FileManagerItem, name: string, folderId?: FileManagerItemId) => void | Promise<void>;
-  uploadFiles?: (folderId?: FileManagerItemId) => void | Promise<void>;
+  uploadFiles?: (files: File[], folderId?: FileManagerItemId) => void | Promise<void>;
 };
 
 export type FileManagerProps = {
@@ -64,6 +72,7 @@ export type FileManagerProps = {
   contextMenuItems?: FileManagerContextMenuItem[];
   dataProvider?: FileManagerDataProvider;
   defaultFolderId?: FileManagerItemId;
+  destinationFolders?: FileManagerFolderOption[];
   defaultSelectedIds?: FileManagerItemId[];
   defaultSort?: FileManagerSortState;
   defaultViewMode?: FileManagerViewMode;
@@ -74,18 +83,20 @@ export type FileManagerProps = {
   loading?: boolean;
   noResultsMessage?: ReactNode;
   onBreadcrumbClick?: (breadcrumb: FileManagerBreadcrumb, index: number) => void;
+  onCopy?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId) => void | Promise<void>;
   onCreateFolder?: () => void;
   onDelete?: (items: FileManagerItem[]) => void;
   onDownload?: (items: FileManagerItem[]) => void;
   onError?: (error: unknown) => void;
   onFolderChange?: (folderId?: FileManagerItemId) => void;
+  onMove?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId) => void | Promise<void>;
   onContextMenuOpen?: (item: FileManagerItem) => void;
   onItemOpen?: (item: FileManagerItem) => void;
   onRename?: (item: FileManagerItem, name: string) => void | Promise<void>;
   onSearchChange?: (query: string) => void;
   onSelectionChange?: (change: FileManagerSelectionChange) => void;
   onSortChange?: (sort: FileManagerSortState) => void;
-  onUpload?: () => void;
+  onUpload?: (files: File[]) => void | Promise<void>;
   onViewModeChange?: (viewMode: FileManagerViewMode) => void;
   renderEmpty?: () => ReactNode;
   renderError?: (error: unknown) => ReactNode;
@@ -96,5 +107,7 @@ export type FileManagerProps = {
   sort?: FileManagerSortState;
   viewMode?: FileManagerViewMode;
 };
+
+
 
 

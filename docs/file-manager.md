@@ -32,7 +32,7 @@ const items: FileManagerItem[] = [
   onItemOpen={(item) => openItem(item)}
   onDownload={(selectedItems) => downloadItems(selectedItems)}
   onDelete={(selectedItems) => deleteItems(selectedItems)}
-  onUpload={() => openUploadDialog()}
+  onUpload={(files) => uploadFiles(files)}
   onCreateFolder={() => openCreateFolderDialog()}
 />
 ```
@@ -54,6 +54,12 @@ const dataProvider = {
   },
   async deleteItems(items, folderId) {
     await api.files.delete(items.map((item) => item.id));
+  },
+  async moveItems(items, destinationFolderId, folderId) {
+    await api.files.move(items.map((item) => item.id), destinationFolderId);
+  },
+  async copyItems(items, destinationFolderId, folderId) {
+    await api.files.copy(items.map((item) => item.id), destinationFolderId);
   },
   async renameItem(item, name, folderId) {
     await api.files.rename(item.id, name);
@@ -80,8 +86,11 @@ Provider methods:
 | --- | --- |
 | `loadFolder(folderId)` | Required. Returns the current folder items and optional breadcrumbs. |
 | `createFolder(folderId)` | Called by the New folder toolbar action. |
+| `uploadFiles(files, folderId)` | Called after the Upload dialog selects files, then refreshes. |
 | `uploadFiles(folderId)` | Called by the Upload toolbar action. |
 | `downloadItems(items, folderId)` | Called with selected items. |
+| `moveItems(items, destinationFolderId, folderId)` | Called from the Move context menu flow, then refreshes. |
+| `copyItems(items, destinationFolderId, folderId)` | Called from the Copy context menu flow, then refreshes. |
 | `renameItem(item, name, folderId)` | Called from the Rename context menu flow, then refreshes. |
 | `deleteItems(items, folderId)` | Called with selected items, then refreshes. |
 | `openFile(item, folderId)` | Called when opening a file. |
@@ -106,9 +115,24 @@ Search, sort, selected IDs, and view mode can be controlled by the app.
 ```
 
 
+
+## Upload UX
+
+The Upload toolbar action opens a file picker dialog. Selected files are listed before submit, and the component validates that at least one file was chosen.
+
+```tsx
+<FileManager
+  items={items}
+  onUpload={async (files) => {
+    await uploadFiles(files);
+  }}
+/>
+```
+
+In provider mode, `uploadFiles(files, folderId)` runs and the current folder refreshes after a successful upload.
 ## Context Menu
 
-Each item exposes built-in context menu actions for `Open`, `Rename`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
+Each item exposes built-in context menu actions for `Open`, `Copy`, `Move`, `Rename`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
 
 Add product-specific actions with `contextMenuItems`:
 
@@ -168,12 +192,16 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `viewMode` / `defaultViewMode` / `onViewModeChange` | `list` or `grid` view. |
 | `onItemOpen` | Called when a file or folder name is activated. |
 | `onRename` | Called with the item and new name from the Rename flow. |
+| `onMove` / `onCopy` | Called with the item list and destination folder id. |
+| `destinationFolders` | Folder choices for Move and Copy when not using visible folders as destinations. |
 | `contextMenuItems` | Custom item-level context menu actions. |
 | `onContextMenuOpen` | Called when an item context menu opens. |
 | `onDownload` / `onDelete` | Called with selected items. |
-| `onUpload` / `onCreateFolder` | Called from toolbar actions. |
+| `onUpload` / `onCreateFolder` | Upload receives selected `File[]`; create folder is called from the toolbar. |
 | `renderLoading` / `renderEmpty` | Custom loading and empty states. |
 | `renderError` / `errorMessage` | Custom provider error state. |
+
+
 
 
 
