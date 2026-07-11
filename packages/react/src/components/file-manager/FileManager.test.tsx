@@ -477,7 +477,7 @@ describe("FileManager", () => {
 
   it("supports controlled folder id changes", async () => {
     const user = userEvent.setup();
-    const loadFolder = vi.fn().mockResolvedValue({ items: [] });
+    const loadFolder = vi.fn().mockResolvedValue({ items: [items[0]] });
     const onFolderChange = vi.fn();
 
     render(
@@ -494,6 +494,50 @@ describe("FileManager", () => {
     expect(onFolderChange).toHaveBeenCalledWith("archive");
     expect(loadFolder).toHaveBeenCalledWith("root");
   });
+
+  it("opens and closes the details panel from the context menu", async () => {
+    const user = userEvent.setup();
+    const onDetailsOpen = vi.fn();
+    const onDetailsClose = vi.fn();
+
+    render(
+      <FileManager
+        items={items}
+        onDetailsClose={onDetailsClose}
+        onDetailsOpen={onDetailsOpen}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Details" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Details for Report.pdf" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText("2.0 KB")).toBeInTheDocument();
+    expect(onDetailsOpen).toHaveBeenCalledWith(items[1]);
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog", { name: "Details for Report.pdf" })).not.toBeInTheDocument();
+    expect(onDetailsClose).toHaveBeenCalled();
+  });
+
+  it("renders custom details content", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FileManager
+        items={items}
+        renderDetails={(item) => <div>Owner for {item.name}</div>}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Details" }));
+
+    expect(screen.getByText("Owner for Report.pdf")).toBeInTheDocument();
+  });
+
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager
@@ -535,15 +579,4 @@ describe("FileManager utils", () => {
     ]);
   });
 });
-
-
-
-
-
-
-
-
-
-
-
 

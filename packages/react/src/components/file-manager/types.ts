@@ -87,6 +87,8 @@ export type FileManagerProps = {
   onCopy?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId) => void | Promise<void>;
   onCreateFolder?: () => void;
   onDelete?: (items: FileManagerItem[]) => void;
+  onDetailsClose?: () => void;
+  onDetailsOpen?: (item: FileManagerItem) => void;
   onDownload?: (items: FileManagerItem[]) => void;
   onError?: (error: unknown) => void;
   onFolderChange?: (folderId?: FileManagerItemId) => void;
@@ -101,6 +103,7 @@ export type FileManagerProps = {
   onUpload?: (files: File[]) => void | Promise<void>;
   onViewModeChange?: (viewMode: FileManagerViewMode) => void;
   renderEmpty?: () => ReactNode;
+  renderDetails?: (item: FileManagerItem) => ReactNode;
   renderError?: (error: unknown) => ReactNode;
   renderLoading?: () => ReactNode;
   searchPlaceholder?: string;
@@ -110,8 +113,4 @@ export type FileManagerProps = {
   sort?: FileManagerSortState;
   viewMode?: FileManagerViewMode;
 };
-
-
-
-
 

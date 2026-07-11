@@ -62,6 +62,8 @@ export function FileManager({
   onContextMenuOpen,
   onCreateFolder,
   onDelete,
+  onDetailsClose,
+  onDetailsOpen,
   onDownload,
   onError,
   onFolderChange,
@@ -74,6 +76,7 @@ export function FileManager({
   onSortChange,
   onUpload,
   onViewModeChange,
+  renderDetails,
   renderEmpty,
   renderError,
   renderLoading,
@@ -97,6 +100,7 @@ export function FileManager({
   const [providerError, setProviderError] = useState<unknown>();
   const [reloadKey, setReloadKey] = useState(0);
   const [activeContextMenu, setActiveContextMenu] = useState<ActiveContextMenu | null>(null);
+  const [detailsItem, setDetailsItem] = useState<FileManagerItem | null>(null);
   const [renameItem, setRenameItem] = useState<FileManagerItem | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renameError, setRenameError] = useState<string | undefined>();
@@ -135,6 +139,7 @@ export function FileManager({
         setProviderBreadcrumbs(result.breadcrumbs ?? breadcrumbs);
         setInternalSelectedIds([]);
         setActiveContextMenu(null);
+        setDetailsItem(null);
       })
       .catch((error: unknown) => {
         if (!isCurrent) {
@@ -202,43 +207,48 @@ export function FileManager({
   const canUpload = Boolean(onUpload || dataProvider?.uploadFiles);
 
   const builtInContextMenuItems: Array<FileManagerContextMenuItem> = [
-      {
-        id: "open",
-        label: "Open",
-        onSelect: (item) => handleItemOpen(item),
-      },
-      {
-        disabled: !canCopy || availableDestinationFolders.length === 0,
-        id: "copy",
-        label: "Copy",
-        onSelect: (item) => handleTransferStart(item, "copy"),
-      },
-      {
-        disabled: !canMove || availableDestinationFolders.length === 0,
-        id: "move",
-        label: "Move",
-        onSelect: (item) => handleTransferStart(item, "move"),
-      },
-      {
-        disabled: !canRename,
-        id: "rename",
-        label: "Rename",
-        onSelect: (item) => handleRenameStart(item),
-      },
-      {
-        disabled: (item) => item.type === "folder" || !canDownload,
-        id: "download",
-        label: "Download",
-        onSelect: (item) => handleDownloadItems([item]),
-      },
-      {
-        danger: true,
-        disabled: !canDelete,
-        id: "delete",
-        label: "Delete",
-        onSelect: (item) => handleDeleteItems([item]),
-      },
-    ];
+    {
+      id: "open",
+      label: "Open",
+      onSelect: (item) => handleItemOpen(item),
+    },
+    {
+      id: "details",
+      label: "Details",
+      onSelect: (item) => handleDetailsOpen(item),
+    },
+    {
+      disabled: !canCopy || availableDestinationFolders.length === 0,
+      id: "copy",
+      label: "Copy",
+      onSelect: (item) => handleTransferStart(item, "copy"),
+    },
+    {
+      disabled: !canMove || availableDestinationFolders.length === 0,
+      id: "move",
+      label: "Move",
+      onSelect: (item) => handleTransferStart(item, "move"),
+    },
+    {
+      disabled: !canRename,
+      id: "rename",
+      label: "Rename",
+      onSelect: (item) => handleRenameStart(item),
+    },
+    {
+      disabled: (item) => item.type === "folder" || !canDownload,
+      id: "download",
+      label: "Download",
+      onSelect: (item) => handleDownloadItems([item]),
+    },
+    {
+      danger: true,
+      disabled: !canDelete,
+      id: "delete",
+      label: "Delete",
+      onSelect: (item) => handleDeleteItems([item]),
+    },
+  ];
   const activeContextMenuItems = [...builtInContextMenuItems, ...contextMenuItems];
 
   function refreshProvider() {
@@ -341,6 +351,7 @@ export function FileManager({
     setInternalSearch("");
     setInternalSelectedIds([]);
     setActiveContextMenu(null);
+    setDetailsItem(null);
     setRenameItem(null);
     setTransferDialog(null);
     setUploadDialogOpen(false);
@@ -363,6 +374,7 @@ export function FileManager({
       setInternalSearch("");
       setInternalSelectedIds([]);
       setActiveContextMenu(null);
+      setDetailsItem(null);
       onFolderChange?.(previousFolderId);
 
       return nextHistory;
@@ -552,6 +564,17 @@ export function FileManager({
       setRenameError("Unable to rename item.");
       onError?.(error);
     }
+  }
+
+  function handleDetailsOpen(item: FileManagerItem) {
+    setActiveContextMenu(null);
+    setDetailsItem(item);
+    onDetailsOpen?.(item);
+  }
+
+  function handleDetailsClose() {
+    setDetailsItem(null);
+    onDetailsClose?.();
   }
 
   function handleContextMenuOpen(item: FileManagerItem, event?: MouseEvent) {
@@ -815,6 +838,53 @@ export function FileManager({
 
       {renderContent()}
 
+      {detailsItem ? (
+        <aside aria-label={`Details for ${detailsItem.name}`} className="absolute inset-y-0 right-0 z-30 w-full max-w-sm border-l border-gray-200 bg-white shadow-xl" role="dialog">
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+            <h2 className="text-base font-semibold text-gray-900">Details</h2>
+            <button className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900" onClick={handleDetailsClose} type="button">
+              Close
+            </button>
+          </div>
+          <div className="space-y-4 p-4 text-sm">
+            {renderDetails ? (
+              renderDetails(detailsItem)
+            ) : (
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">Name</dt>
+                  <dd className="mt-1 break-words text-gray-900">{detailsItem.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">Type</dt>
+                  <dd className="mt-1 text-gray-900">{detailsItem.type === "folder" ? "Folder" : detailsItem.extension ?? "File"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">Size</dt>
+                  <dd className="mt-1 text-gray-900">{formatFileSize(detailsItem.size)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">Path</dt>
+                  <dd className="mt-1 break-words text-gray-900">{detailsItem.path ?? "--"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">Created</dt>
+                  <dd className="mt-1 text-gray-900">{formatFileDate(detailsItem.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">Modified</dt>
+                  <dd className="mt-1 text-gray-900">{formatFileDate(detailsItem.modifiedAt)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-500">ID</dt>
+                  <dd className="mt-1 break-words text-gray-900">{String(getItemId(detailsItem))}</dd>
+                </div>
+              </dl>
+            )}
+          </div>
+        </aside>
+      ) : null}
+
       {activeContextMenu ? (
         <div className="fixed inset-0 z-40" onClick={() => setActiveContextMenu(null)}>
           <div
@@ -964,12 +1034,4 @@ function FileManagerState({ label }: { label: ReactNode }) {
     </div>
   );
 }
-
-
-
-
-
-
-
-
 

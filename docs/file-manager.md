@@ -149,7 +149,7 @@ The Upload toolbar action opens a file picker dialog. Selected files are listed 
 In provider mode, `uploadFiles(files, folderId)` runs and the current folder refreshes after a successful upload.
 ## Context Menu
 
-Each item exposes built-in context menu actions for `Open`, `Copy`, `Move`, `Rename`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
+Each item exposes built-in context menu actions for `Open`, `Details`, `Copy`, `Move`, `Rename`, `Download`, and `Delete`. Users can open the menu with right click or the item action button.
 
 Add product-specific actions with `contextMenuItems`:
 
@@ -174,6 +174,27 @@ Add product-specific actions with `contextMenuItems`:
 ```
 
 `disabled` can be a boolean or a function of the current item. Use `danger` for destructive custom actions.
+
+## Details Panel
+
+The built-in `Details` context menu action opens a side panel with item metadata such as name, type, size, path, created date, modified date, and ID.
+
+```tsx
+<FileManager
+  items={items}
+  onDetailsOpen={(item) => trackDetailsOpen(item)}
+  onDetailsClose={() => trackDetailsClose()}
+  renderDetails={(item) => (
+    <div>
+      <h3>{item.name}</h3>
+      <p>Owner: Finance team</p>
+    </div>
+  )}
+/>
+```
+
+Use `renderDetails` when the product needs richer metadata, permissions, previews, or audit information in the panel.
+
 ## Render Slots
 
 Use `renderLoading` and `renderEmpty` when the product needs branded states.
@@ -218,14 +239,10 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `destinationFolders` | Folder choices for Move and Copy when not using visible folders as destinations. |
 | `contextMenuItems` | Custom item-level context menu actions. |
 | `onContextMenuOpen` | Called when an item context menu opens. |
+| `renderDetails` | Custom content for the built-in details panel. |
+| `onDetailsOpen` / `onDetailsClose` | Called when the built-in details panel opens or closes. |
 | `onDownload` / `onDelete` | Called with selected items. |
 | `onUpload` / `onCreateFolder` | Upload receives selected `File[]`; create folder is called from the toolbar. |
 | `renderLoading` / `renderEmpty` | Custom loading and empty states. |
 | `renderError` / `errorMessage` | Custom provider error state. |
-
-
-
-
-
-
 
