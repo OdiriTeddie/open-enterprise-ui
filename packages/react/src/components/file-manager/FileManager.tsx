@@ -52,6 +52,7 @@ export function FileManager({
   defaultViewMode = "list",
   emptyMessage = "No files or folders.",
   errorMessage = "Unable to load files.",
+  folderId,
   getItemId = (item) => item.id,
   items = [],
   loading = false,
@@ -66,6 +67,7 @@ export function FileManager({
   onFolderChange,
   onMove,
   onItemOpen,
+  onRefresh,
   onRename,
   onSearchChange,
   onSelectionChange,
@@ -76,13 +78,15 @@ export function FileManager({
   renderError,
   renderLoading,
   searchPlaceholder = "Search files...",
+  showNavigationControls = true,
   searchValue,
   selectedIds,
   sort,
   viewMode,
 }: FileManagerProps) {
   const searchInputId = useId();
-  const [currentFolderId, setCurrentFolderId] = useState<FileManagerItemId | undefined>(defaultFolderId);
+  const [internalFolderId, setInternalFolderId] = useState<FileManagerItemId | undefined>(defaultFolderId);
+  const [navigationHistory, setNavigationHistory] = useState<Array<FileManagerItemId | undefined>>([]);
   const [internalSearch, setInternalSearch] = useState("");
   const [internalSelectedIds, setInternalSelectedIds] = useState<FileManagerItemId[]>(defaultSelectedIds);
   const [internalSort, setInternalSort] = useState<FileManagerSortState>(defaultSort);
@@ -103,6 +107,7 @@ export function FileManager({
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadError, setUploadError] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
+  const currentFolderId = folderId ?? internalFolderId;
 
   useEffect(() => {
     if (!dataProvider) {
@@ -184,6 +189,10 @@ export function FileManager({
     [destinationFolders, effectiveItems, getItemId],
   );
 
+  const canGoBack = navigationHistory.length > 0;
+  const canGoUp = effectiveBreadcrumbs.length > 1;
+  const canNavigateFolders = Boolean(dataProvider || onFolderChange);
+
   const canCreateFolder = Boolean(onCreateFolder || dataProvider?.createFolder);
   const canCopy = Boolean(onCopy || dataProvider?.copyItems);
   const canDelete = Boolean(onDelete || dataProvider?.deleteItems);
@@ -236,6 +245,8 @@ export function FileManager({
     if (dataProvider) {
       setReloadKey((currentKey) => currentKey + 1);
     }
+
+    onRefresh?.(currentFolderId);
   }
 
   async function runProviderAction(action: () => void | Promise<void>) {
@@ -314,18 +325,62 @@ export function FileManager({
     }
   }
 
-  function handleFolderChange(folderId?: FileManagerItemId) {
-    setCurrentFolderId(folderId);
+  function handleFolderChange(nextFolderId?: FileManagerItemId, addToHistory = true) {
+    if (nextFolderId === currentFolderId) {
+      return;
+    }
+
+    if (addToHistory) {
+      setNavigationHistory((currentHistory) => [...currentHistory, currentFolderId]);
+    }
+
+    if (folderId === undefined) {
+      setInternalFolderId(nextFolderId);
+    }
+
     setInternalSearch("");
     setInternalSelectedIds([]);
     setActiveContextMenu(null);
-    onFolderChange?.(folderId);
+    setRenameItem(null);
+    setTransferDialog(null);
+    setUploadDialogOpen(false);
+    onFolderChange?.(nextFolderId);
+  }
+
+  function handleBack() {
+    setNavigationHistory((currentHistory) => {
+      if (currentHistory.length === 0) {
+        return currentHistory;
+      }
+
+      const nextHistory = currentHistory.slice(0, -1);
+      const previousFolderId = currentHistory[currentHistory.length - 1];
+
+      if (folderId === undefined) {
+        setInternalFolderId(previousFolderId);
+      }
+
+      setInternalSearch("");
+      setInternalSelectedIds([]);
+      setActiveContextMenu(null);
+      onFolderChange?.(previousFolderId);
+
+      return nextHistory;
+    });
+  }
+
+  function handleUp() {
+    const parentBreadcrumb = effectiveBreadcrumbs[effectiveBreadcrumbs.length - 2];
+
+    if (parentBreadcrumb) {
+      handleFolderChange(parentBreadcrumb.id);
+    }
   }
 
   function handleBreadcrumbClick(breadcrumb: FileManagerBreadcrumb, index: number) {
     onBreadcrumbClick?.(breadcrumb, index);
 
-    if (dataProvider) {
+    if (canNavigateFolders) {
       handleFolderChange(breadcrumb.id);
     }
   }
@@ -333,7 +388,7 @@ export function FileManager({
   function handleItemOpen(item: FileManagerItem) {
     setActiveContextMenu(null);
 
-    if (item.type === "folder" && dataProvider) {
+    if (item.type === "folder" && canNavigateFolders) {
       handleFolderChange(getItemId(item));
       onItemOpen?.(item);
       return;
@@ -666,6 +721,19 @@ export function FileManager({
     <section aria-label={ariaLabel} className={`relative overflow-hidden rounded-md border border-gray-200 bg-white ${className}`}>
       <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          {showNavigationControls ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canGoBack || effectiveLoading} onClick={handleBack} type="button">
+                Back
+              </button>
+              <button className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canGoUp || effectiveLoading} onClick={handleUp} type="button">
+                Up
+              </button>
+              <button className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={effectiveLoading} onClick={refreshProvider} type="button">
+                Refresh
+              </button>
+            </div>
+          ) : null}
           <nav aria-label="Folder path" className="flex flex-wrap items-center gap-1 text-sm text-gray-600">
             {effectiveBreadcrumbs.map((breadcrumb, index) => (
               <span className="flex items-center gap-1" key={`${index}-${breadcrumb.path ?? String(breadcrumb.id ?? "root")}`}>
@@ -896,6 +964,8 @@ function FileManagerState({ label }: { label: ReactNode }) {
     </div>
   );
 }
+
+
 
 
 

@@ -407,6 +407,93 @@ describe("FileManager", () => {
     await waitFor(() => expect(uploadFiles).toHaveBeenCalledWith([file], undefined));
     await waitFor(() => expect(loadFolder).toHaveBeenCalledTimes(2));
   });
+
+  it("navigates back and up in provider mode", async () => {
+    const user = userEvent.setup();
+    const loadFolder = vi
+      .fn()
+      .mockResolvedValueOnce({
+        breadcrumbs: [{ id: "root", label: "Drive" }],
+        items: [items[0]],
+      })
+      .mockResolvedValueOnce({
+        breadcrumbs: [{ id: "root", label: "Drive" }, { id: "archive", label: "Archive" }],
+        items: [items[1]],
+      })
+      .mockResolvedValueOnce({
+        breadcrumbs: [{ id: "root", label: "Drive" }],
+        items: [items[0]],
+      });
+
+    render(<FileManager dataProvider={{ loadFolder }} defaultFolderId="root" />);
+
+    await user.click(await screen.findByRole("button", { name: "Archive" }));
+    expect(await screen.findByRole("button", { name: "Report.pdf" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(await screen.findByRole("button", { name: "Archive" })).toBeInTheDocument();
+    expect(loadFolder).toHaveBeenLastCalledWith("root");
+  });
+
+  it("uses breadcrumbs and refresh callbacks for folder navigation", async () => {
+    const user = userEvent.setup();
+    const onFolderChange = vi.fn();
+    const onRefresh = vi.fn();
+
+    render(
+      <FileManager
+        breadcrumbs={[{ id: "root", label: "Drive" }, { id: "archive", label: "Archive" }]}
+        items={items}
+        onFolderChange={onFolderChange}
+        onRefresh={onRefresh}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Drive" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
+
+    expect(onFolderChange).toHaveBeenCalledWith("root");
+    expect(onRefresh).toHaveBeenCalledWith("root");
+  });
+
+  it("opens folders in manual mode when onFolderChange is supplied", async () => {
+    const user = userEvent.setup();
+    const onFolderChange = vi.fn();
+    const onItemOpen = vi.fn();
+
+    render(
+      <FileManager
+        items={items}
+        onFolderChange={onFolderChange}
+        onItemOpen={onItemOpen}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+
+    expect(onFolderChange).toHaveBeenCalledWith("archive");
+    expect(onItemOpen).toHaveBeenCalledWith(items[0]);
+  });
+
+  it("supports controlled folder id changes", async () => {
+    const user = userEvent.setup();
+    const loadFolder = vi.fn().mockResolvedValue({ items: [] });
+    const onFolderChange = vi.fn();
+
+    render(
+      <FileManager
+        dataProvider={{ loadFolder }}
+        folderId="root"
+        items={items}
+        onFolderChange={onFolderChange}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Archive" }));
+
+    expect(onFolderChange).toHaveBeenCalledWith("archive");
+    expect(loadFolder).toHaveBeenCalledWith("root");
+  });
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager
@@ -448,6 +535,7 @@ describe("FileManager utils", () => {
     ]);
   });
 });
+
 
 
 

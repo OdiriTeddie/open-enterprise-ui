@@ -96,6 +96,23 @@ Provider methods:
 | `openFile(item, folderId)` | Called when opening a file. |
 
 Use `renderError` or `errorMessage` to customize provider load/action failures.
+
+## Folder Navigation
+
+Provider mode supports folder navigation out of the box. Opening a folder calls `loadFolder(folderId)`, breadcrumbs are updated from the provider result, and Back, Up, and Refresh controls are shown by default.
+
+```tsx
+<FileManager
+  dataProvider={dataProvider}
+  defaultFolderId="root"
+  onFolderChange={(folderId) => setCurrentFolder(folderId)}
+  onRefresh={(folderId) => trackRefresh(folderId)}
+/>
+```
+
+Use `folderId` for controlled navigation. In manual mode, provide `onFolderChange` to receive folder-open and breadcrumb navigation events while your app swaps `items` and `breadcrumbs`.
+
+Set `showNavigationControls={false}` if your shell already provides navigation controls.
 ## Controlled State
 
 Search, sort, selected IDs, and view mode can be controlled by the app.
@@ -176,6 +193,7 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 - Search matches item name, extension, path, and type.
 - Selection supports controlled and uncontrolled state.
 - Toolbar actions are disabled when their callback is missing or no item is selected.
+- Back, Up, and Refresh navigation controls are shown by default.
 - The component does not perform filesystem or network operations directly.
 
 ## Props
@@ -184,7 +202,11 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | --- | --- |
 | `items` | Files and folders to render in manual mode. |
 | `dataProvider` | Server/data provider for folder loading and file operations. |
-| `defaultFolderId` | Initial folder loaded by `dataProvider`. |
+| `defaultFolderId` | Initial uncontrolled folder loaded by `dataProvider`. |
+| `folderId` | Controlled current folder id. |
+| `onFolderChange` | Called when a folder, breadcrumb, Back, or Up navigation changes folder. |
+| `onRefresh` | Called when the Refresh control is activated. |
+| `showNavigationControls` | Shows or hides Back, Up, and Refresh controls. |
 | `breadcrumbs` | Current folder path. |
 | `selectedIds` / `defaultSelectedIds` | Controlled or uncontrolled selected item IDs. |
 | `searchValue` / `onSearchChange` | Controlled search query. |
@@ -200,6 +222,7 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `onUpload` / `onCreateFolder` | Upload receives selected `File[]`; create folder is called from the toolbar. |
 | `renderLoading` / `renderEmpty` | Custom loading and empty states. |
 | `renderError` / `errorMessage` | Custom provider error state. |
+
 
 
 

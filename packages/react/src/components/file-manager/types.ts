@@ -78,6 +78,7 @@ export type FileManagerProps = {
   defaultViewMode?: FileManagerViewMode;
   emptyMessage?: ReactNode;
   errorMessage?: ReactNode;
+  folderId?: FileManagerItemId;
   getItemId?: (item: FileManagerItem) => FileManagerItemId;
   items?: FileManagerItem[];
   loading?: boolean;
@@ -92,6 +93,7 @@ export type FileManagerProps = {
   onMove?: (items: FileManagerItem[], destinationFolderId: FileManagerItemId) => void | Promise<void>;
   onContextMenuOpen?: (item: FileManagerItem) => void;
   onItemOpen?: (item: FileManagerItem) => void;
+  onRefresh?: (folderId?: FileManagerItemId) => void;
   onRename?: (item: FileManagerItem, name: string) => void | Promise<void>;
   onSearchChange?: (query: string) => void;
   onSelectionChange?: (change: FileManagerSelectionChange) => void;
@@ -102,11 +104,13 @@ export type FileManagerProps = {
   renderError?: (error: unknown) => ReactNode;
   renderLoading?: () => ReactNode;
   searchPlaceholder?: string;
+  showNavigationControls?: boolean;
   searchValue?: string;
   selectedIds?: FileManagerItemId[];
   sort?: FileManagerSortState;
   viewMode?: FileManagerViewMode;
 };
+
 
 
 
