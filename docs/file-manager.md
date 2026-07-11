@@ -224,6 +224,25 @@ The File Manager supports keyboard access for common file workflows:
 - File and folder item buttons open the context menu with `Shift+F10` or the keyboard Context Menu key.
 - `Escape` closes the active context menu, dialog, or details panel.
 
+
+## Virtualization
+
+Enable `virtualization` for large folders so the File Manager only renders the visible window of items while preserving the full scroll range.
+
+```tsx
+<FileManager
+  items={items}
+  virtualization={{
+    enabled: true,
+    estimatedItemHeight: 52,
+    viewportHeight: 480,
+    overscan: 6,
+  }}
+/>
+```
+
+For grid view, set `gridColumnCount` to match the effective column count used by your layout so spacer height stays accurate.
+
 ## Render Slots
 
 Use `renderLoading` and `renderEmpty` when the product needs branded states.
@@ -244,6 +263,7 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 - Selection supports controlled and uncontrolled state.
 - Toolbar actions are disabled when their callback is missing or no item is selected.
 - Back, Up, and Refresh navigation controls are shown by default.
+- Virtualization is opt-in and uses fixed estimated item heights.
 - The component does not perform filesystem or network operations directly.
 
 ## Props
@@ -262,6 +282,7 @@ Use `renderLoading` and `renderEmpty` when the product needs branded states.
 | `searchValue` / `onSearchChange` | Controlled search query. |
 | `sort` / `defaultSort` / `onSortChange` | Sort state. |
 | `viewMode` / `defaultViewMode` / `onViewModeChange` | `list` or `grid` view. |
+| `virtualization` | Enables fixed-size windowing for large folders. |
 | `onItemOpen` | Called when a file or folder name is activated. |
 | `onRename` | Called with the item and new name from the Rename flow. |
 | `onMove` / `onCopy` | Called with the item list and destination folder id. |

@@ -654,6 +654,53 @@ describe("FileManager", () => {
     expect(screen.queryByRole("menu", { name: "Actions for Report.pdf" })).not.toBeInTheDocument();
   });
 
+
+
+  it("virtualizes list rows when enabled", () => {
+    const manyItems = Array.from({ length: 50 }, (_, index) => ({
+      id: `file-${index}`,
+      name: `File ${index}.pdf`,
+      type: "file" as const,
+    }));
+
+    render(
+      <FileManager
+        items={manyItems}
+        virtualization={{ enabled: true, estimatedItemHeight: 40, overscan: 0, viewportHeight: 120 }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "File 0.pdf" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "File 2.pdf" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "File 10.pdf" })).not.toBeInTheDocument();
+  });
+
+  it("updates the virtualized list window on scroll", async () => {
+    const manyItems = Array.from({ length: 50 }, (_, index) => ({
+      id: `file-${index}`,
+      name: `File ${index}.pdf`,
+      type: "file" as const,
+    }));
+
+    const { container } = render(
+      <FileManager
+        items={manyItems}
+        virtualization={{ enabled: true, estimatedItemHeight: 40, overscan: 0, viewportHeight: 120 }}
+      />,
+    );
+
+    const scrollContainer = container.querySelector('[data-virtualized="true"]');
+
+    expect(scrollContainer).not.toBeNull();
+
+    scrollContainer?.dispatchEvent(new Event("scroll", { bubbles: true }));
+    Object.defineProperty(scrollContainer, "scrollTop", { configurable: true, value: 400 });
+    scrollContainer?.dispatchEvent(new Event("scroll", { bubbles: true }));
+
+    expect(await screen.findByRole("button", { name: "File 10.pdf" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "File 0.pdf" })).not.toBeInTheDocument();
+  });
+
   it("renders custom loading and empty states", () => {
     const { rerender } = render(
       <FileManager

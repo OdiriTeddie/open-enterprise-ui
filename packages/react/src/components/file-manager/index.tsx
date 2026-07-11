@@ -68,6 +68,7 @@ export type {
   FileManagerItemType,
   FileManagerProps,
   FileManagerSelectionChange,
+  FileManagerVirtualizationOptions,
   FileManagerSortDirection,
   FileManagerSortKey,
   FileManagerSortState,

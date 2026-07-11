@@ -64,6 +64,14 @@ export type FileManagerPermissionRule = boolean | ((item?: FileManagerItem) => b
 
 export type FileManagerPermissions = Partial<Record<FileManagerPermissionAction, FileManagerPermissionRule>>;
 
+export type FileManagerVirtualizationOptions = {
+  enabled?: boolean;
+  estimatedItemHeight?: number;
+  gridColumnCount?: number;
+  overscan?: number;
+  viewportHeight?: number;
+};
+
 export type FileManagerLoadResult = {
   breadcrumbs?: FileManagerBreadcrumb[];
   items: FileManagerItem[];
@@ -128,6 +136,7 @@ export type FileManagerProps = {
   searchValue?: string;
   selectedIds?: FileManagerItemId[];
   sort?: FileManagerSortState;
+  virtualization?: boolean | FileManagerVirtualizationOptions;
   viewMode?: FileManagerViewMode;
 };
 

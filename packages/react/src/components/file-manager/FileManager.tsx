@@ -1,5 +1,5 @@
 ﻿import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode, UIEvent } from "react";
 import type {
   FileManagerBreadcrumb,
   FileManagerContextMenuItem,
@@ -87,6 +87,7 @@ export function FileManager({
   searchValue,
   selectedIds,
   sort,
+  virtualization = false,
   viewMode,
 }: FileManagerProps) {
   const searchInputId = useId();
@@ -112,6 +113,7 @@ export function FileManager({
   const [transferError, setTransferError] = useState<string | undefined>();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
   const [uploadError, setUploadError] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const currentFolderId = folderId ?? internalFolderId;
@@ -210,6 +212,27 @@ export function FileManager({
     () => sortFileManagerItems(filterFileManagerItems(effectiveItems, currentSearch), currentSort),
     [currentSearch, currentSort, effectiveItems],
   );
+
+  const virtualizationOptions = typeof virtualization === "boolean" ? { enabled: virtualization } : virtualization;
+  const isVirtualized = Boolean(virtualizationOptions.enabled);
+  const virtualItemHeight = virtualizationOptions.estimatedItemHeight ?? (currentViewMode === "grid" ? 132 : 52);
+  const virtualGridColumnCount = Math.max(1, virtualizationOptions.gridColumnCount ?? 4);
+  const virtualOverscan = virtualizationOptions.overscan ?? 4;
+  const virtualViewportHeight = virtualizationOptions.viewportHeight ?? 420;
+  const virtualItemsPerRow = currentViewMode === "grid" ? virtualGridColumnCount : 1;
+  const virtualRowCount = Math.ceil(visibleItems.length / virtualItemsPerRow);
+  const virtualStartRow = isVirtualized
+    ? Math.max(0, Math.floor(virtualScrollTop / virtualItemHeight) - virtualOverscan)
+    : 0;
+  const virtualVisibleRowCount = isVirtualized
+    ? Math.ceil(virtualViewportHeight / virtualItemHeight) + virtualOverscan * 2
+    : virtualRowCount;
+  const virtualEndRow = isVirtualized ? Math.min(virtualRowCount, virtualStartRow + virtualVisibleRowCount) : virtualRowCount;
+  const virtualStartIndex = virtualStartRow * virtualItemsPerRow;
+  const virtualEndIndex = Math.min(visibleItems.length, virtualEndRow * virtualItemsPerRow);
+  const virtualizedItems = isVirtualized ? visibleItems.slice(virtualStartIndex, virtualEndIndex) : visibleItems;
+  const virtualTopSpacerHeight = isVirtualized ? virtualStartRow * virtualItemHeight : 0;
+  const virtualBottomSpacerHeight = isVirtualized ? Math.max(0, (virtualRowCount - virtualEndRow) * virtualItemHeight) : 0;
 
   const selectedItems = useMemo(
     () => effectiveItems.filter((item) => currentSelectedIds.includes(getItemId(item))),
@@ -769,6 +792,10 @@ export function FileManager({
     );
   }
 
+  function handleVirtualScroll(event: UIEvent<HTMLDivElement>) {
+    setVirtualScrollTop(event.currentTarget.scrollTop);
+  }
+
   function renderContent() {
     if (effectiveLoading) {
       return renderLoading ? renderLoading() : <FileManagerState label="Loading files..." />;
@@ -788,8 +815,15 @@ export function FileManager({
 
     if (currentViewMode === "grid") {
       return (
-        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-          {visibleItems.map((item) => {
+        <div
+          aria-rowcount={visibleItems.length}
+          className="grid gap-3 overflow-y-auto p-4 sm:grid-cols-2 lg:grid-cols-4"
+          data-virtualized={isVirtualized ? "true" : undefined}
+          onScroll={isVirtualized ? handleVirtualScroll : undefined}
+          style={isVirtualized ? { maxHeight: virtualViewportHeight } : undefined}
+        >
+          {isVirtualized && virtualTopSpacerHeight > 0 ? <div aria-hidden="true" style={{ gridColumn: "1 / -1", height: virtualTopSpacerHeight }} /> : null}
+          {virtualizedItems.map((item) => {
             const itemId = getItemId(item);
             const isSelected = currentSelectedIds.includes(itemId);
 
@@ -830,12 +864,18 @@ export function FileManager({
               </div>
             );
           })}
+          {isVirtualized && virtualBottomSpacerHeight > 0 ? <div aria-hidden="true" style={{ gridColumn: "1 / -1", height: virtualBottomSpacerHeight }} /> : null}
         </div>
       );
     }
 
     return (
-      <div className="overflow-x-auto">
+      <div
+        className="overflow-x-auto"
+        data-virtualized={isVirtualized ? "true" : undefined}
+        onScroll={isVirtualized ? handleVirtualScroll : undefined}
+        style={isVirtualized ? { maxHeight: virtualViewportHeight, overflowY: "auto" } : undefined}
+      >
         <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
           <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
             <tr>
@@ -857,7 +897,12 @@ export function FileManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {visibleItems.map((item) => {
+            {isVirtualized && virtualTopSpacerHeight > 0 ? (
+              <tr aria-hidden="true">
+                <td colSpan={6} style={{ height: virtualTopSpacerHeight, padding: 0 }} />
+              </tr>
+            ) : null}
+            {virtualizedItems.map((item) => {
               const itemId = getItemId(item);
               const isSelected = currentSelectedIds.includes(itemId);
 
@@ -895,6 +940,11 @@ export function FileManager({
                 </tr>
               );
             })}
+            {isVirtualized && virtualBottomSpacerHeight > 0 ? (
+              <tr aria-hidden="true">
+                <td colSpan={6} style={{ height: virtualBottomSpacerHeight, padding: 0 }} />
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>
