@@ -59,4 +59,13 @@ type ToolbarSeparatorItem = {
 
 `Toolbar` renders `role="toolbar"` with `aria-orientation`. Separators render `role="separator"`. Pressed action items expose `aria-pressed`.
 
-Phase 1 covers static action/separator rendering. Keyboard roving focus, menus, and overflow handling are planned follow-up phases.
+Keyboard behavior:
+
+- `ArrowRight` / `ArrowLeft` move focus in horizontal toolbars.
+- `ArrowDown` / `ArrowUp` move focus in vertical toolbars.
+- `Home` moves focus to the first enabled action.
+- `End` moves focus to the last enabled action.
+- `Enter` and `Space` activate the focused action.
+- Disabled actions and separators are skipped.
+
+Menus and overflow handling are planned follow-up phases.

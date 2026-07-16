@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
 import type { ToolbarActionItem, ToolbarItem, ToolbarProps } from "./types";
 
 const orientationClasses = {
@@ -36,6 +38,55 @@ export function Toolbar({
   trailing,
 }: ToolbarProps) {
   const isVertical = orientation === "vertical";
+  const enabledActionItems = useMemo(() => items.filter((item): item is ToolbarActionItem => isActionItem(item) && !item.disabled), [items]);
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+  const activeFocusableItemId = focusedItemId && enabledActionItems.some((item) => item.id === focusedItemId)
+    ? focusedItemId
+    : enabledActionItems[0]?.id;
+
+  function focusItem(itemId: string) {
+    setFocusedItemId(itemId);
+    document.querySelector<HTMLElement>(`[data-toolbar-item-id="${CSS.escape(itemId)}"]`)?.focus();
+  }
+
+  function moveFocus(currentItem: ToolbarActionItem, direction: 1 | -1) {
+    if (enabledActionItems.length === 0) {
+      return;
+    }
+
+    const currentIndex = Math.max(0, enabledActionItems.findIndex((item) => item.id === currentItem.id));
+    const nextItem = enabledActionItems[(currentIndex + direction + enabledActionItems.length) % enabledActionItems.length];
+
+    focusItem(nextItem.id);
+  }
+
+  function handleActionKeyDown(item: ToolbarActionItem, event: KeyboardEvent<HTMLButtonElement>) {
+    const previousKey = isVertical ? "ArrowUp" : "ArrowLeft";
+    const nextKey = isVertical ? "ArrowDown" : "ArrowRight";
+
+    if (event.key === previousKey) {
+      event.preventDefault();
+      moveFocus(item, -1);
+    } else if (event.key === nextKey) {
+      event.preventDefault();
+      moveFocus(item, 1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      const firstItem = enabledActionItems[0];
+      if (firstItem) {
+        focusItem(firstItem.id);
+      }
+    } else if (event.key === "End") {
+      event.preventDefault();
+      const lastItem = enabledActionItems[enabledActionItems.length - 1];
+      if (lastItem) {
+        focusItem(lastItem.id);
+      }
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleSelect(item);
+    }
+  }
 
   function handleSelect(item: ToolbarActionItem) {
     if (item.disabled) {
@@ -70,9 +121,13 @@ export function Toolbar({
           <button
             aria-pressed={item.pressed}
             className={`inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${buttonSizeClasses[size]} ${variantClasses[item.variant ?? "default"]}`}
+            data-toolbar-item-id={item.id}
             disabled={item.disabled}
             key={item.id}
             onClick={() => handleSelect(item)}
+            onFocus={() => setFocusedItemId(item.id)}
+            onKeyDown={(event) => handleActionKeyDown(item, event)}
+            tabIndex={item.disabled ? -1 : item.id === activeFocusableItemId ? 0 : -1}
             title={item.tooltip}
             type="button"
           >

@@ -70,4 +70,59 @@ describe("Toolbar", () => {
 
     expect(screen.getByRole("button", { name: "Upload" })).toHaveAttribute("title", "Upload files");
   });
+
+  it("moves focus with horizontal arrow keys", async () => {
+    const user = userEvent.setup();
+
+    render(<Toolbar items={items} />);
+
+    screen.getByRole("button", { name: "New" }).focus();
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("button", { name: "Upload" })).toHaveFocus();
+
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("button", { name: "Filter" })).toHaveFocus();
+  });
+
+  it("moves focus with vertical arrow keys", async () => {
+    const user = userEvent.setup();
+
+    render(<Toolbar items={items} orientation="vertical" />);
+
+    screen.getByRole("button", { name: "Filter" }).focus();
+    await user.keyboard("{ArrowUp}");
+
+    expect(screen.getByRole("button", { name: "Upload" })).toHaveFocus();
+  });
+
+  it("moves focus to first and last enabled actions", async () => {
+    const user = userEvent.setup();
+
+    render(<Toolbar items={items} />);
+
+    screen.getByRole("button", { name: "New" }).focus();
+    await user.keyboard("{End}");
+
+    expect(screen.getByRole("button", { name: "Filter" })).toHaveFocus();
+
+    await user.keyboard("{Home}");
+
+    expect(screen.getByRole("button", { name: "New" })).toHaveFocus();
+  });
+
+  it("activates focused actions with keyboard", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+
+    render(<Toolbar items={[{ id: "refresh", label: "Refresh", onSelect }]} />);
+
+    screen.getByRole("button", { name: "Refresh" }).focus();
+    await user.keyboard("{Enter}");
+    await user.keyboard(" ");
+
+    expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+
 });
