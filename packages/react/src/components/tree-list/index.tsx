@@ -19,9 +19,9 @@ const teamMembers: TeamMember[] = [
 ];
 
 const columns: TreeListColumn<TeamMember>[] = [
-  { accessorKey: "name", header: "Name", width: 280 },
-  { accessorKey: "role", header: "Role" },
-  { accessorKey: "location", header: "Location" },
+  { accessorKey: "name", header: "Name", sortable: true, width: 280 },
+  { accessorKey: "role", header: "Role", sortable: true },
+  { accessorKey: "location", header: "Location", sortable: true },
 ];
 
 export function TreeListExample() {
@@ -42,6 +42,10 @@ export type {
   TreeListCellContext,
   TreeListColumn,
   TreeListColumnAlign,
+  TreeListSortState,
+  TreeListSortDirection,
+  TreeListFilterState,
+  TreeListFilterMode,
   TreeListNode,
   TreeListProps,
   TreeListRowId,

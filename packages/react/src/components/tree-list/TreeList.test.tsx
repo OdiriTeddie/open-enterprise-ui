@@ -24,6 +24,11 @@ const columns: TreeListColumn<Employee>[] = [
   { accessorKey: "role", header: "Role" },
 ];
 
+const sortableColumns: TreeListColumn<Employee>[] = [
+  { accessorKey: "name", header: "Name", sortable: true },
+  { accessorKey: "role", header: "Role", sortable: true },
+];
+
 function renderTreeList(overrides = {}) {
   return render(
     <TreeList
@@ -111,6 +116,113 @@ describe("TreeList", () => {
     expect(screen.getAllByText("1:true:false")).toHaveLength(1);
   });
 
+
+
+  it("sorts sibling rows without flattening the hierarchy", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({
+      columns: sortableColumns,
+      defaultExpandedRowIds: ["ceo"],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Sort by Name" }));
+
+    const rows = screen.getAllByRole("row");
+
+    expect(within(rows[1]).getByText("Maya Chen")).toBeInTheDocument();
+    expect(within(rows[2]).getByText("Ava Johnson")).toBeInTheDocument();
+    expect(within(rows[3]).getByText("Noah Singh")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Sort by Name" }));
+
+    const descendingRows = screen.getAllByRole("row");
+
+    expect(within(descendingRows[1]).getByText("Maya Chen")).toBeInTheDocument();
+    expect(within(descendingRows[2]).getByText("Noah Singh")).toBeInTheDocument();
+    expect(within(descendingRows[3]).getByText("Ava Johnson")).toBeInTheDocument();
+  });
+
+  it("supports controlled sort state", async () => {
+    const user = userEvent.setup();
+    const onSortChange = vi.fn();
+
+    renderTreeList({
+      columns: sortableColumns,
+      defaultExpandedRowIds: ["ceo"],
+      onSortChange,
+      sort: { columnId: "name", direction: "asc" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "Sort by Name" }));
+
+    expect(onSortChange).toHaveBeenCalledWith({ columnId: "name", direction: "desc" });
+  });
+
+  it("filters rows and keeps ancestor paths by default", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({
+      columns: sortableColumns,
+      defaultExpandedRowIds: ["ceo", "eng"],
+    });
+
+    await user.type(screen.getByRole("searchbox", { name: "Search rows" }), "platform");
+
+    expect(screen.getByText("Maya Chen")).toBeInTheDocument();
+    expect(screen.getByText("Ava Johnson")).toBeInTheDocument();
+    expect(screen.getByText("Elias Martin")).toBeInTheDocument();
+    expect(screen.queryByText("Noah Singh")).not.toBeInTheDocument();
+  });
+
+  it("supports match-only filtering", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({
+      columns: sortableColumns,
+      defaultExpandedRowIds: ["ceo", "eng"],
+      filterMode: "match-only",
+    });
+
+    await user.type(screen.getByRole("searchbox", { name: "Search rows" }), "platform");
+
+    expect(screen.queryByText("Maya Chen")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ava Johnson")).not.toBeInTheDocument();
+    expect(screen.getByText("Elias Martin")).toBeInTheDocument();
+  });
+
+  it("supports include-descendants filtering", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({
+      columns: sortableColumns,
+      defaultExpandedRowIds: ["ceo", "eng"],
+      filterMode: "include-descendants",
+    });
+
+    await user.type(screen.getByRole("searchbox", { name: "Search rows" }), "engineering");
+
+    expect(screen.getByText("Maya Chen")).toBeInTheDocument();
+    expect(screen.getByText("Ava Johnson")).toBeInTheDocument();
+    expect(screen.getByText("Elias Martin")).toBeInTheDocument();
+  });
+
+  it("supports controlled filtering", async () => {
+    const user = userEvent.setup();
+    const onFilterChange = vi.fn();
+
+    renderTreeList({
+      columns: sortableColumns,
+      filter: { global: "" },
+      onFilterChange,
+    });
+
+    await user.type(screen.getByRole("searchbox", { name: "Search rows" }), "o");
+
+    expect(onFilterChange).toHaveBeenCalledWith({ global: "o" });
+    expect(screen.getByText("Maya Chen")).toBeInTheDocument();
+    expect(screen.queryByText("Noah Singh")).not.toBeInTheDocument();
+  });
 
   it("supports single row selection", async () => {
     const user = userEvent.setup();

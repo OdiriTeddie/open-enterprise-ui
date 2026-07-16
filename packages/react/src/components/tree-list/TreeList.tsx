@@ -1,48 +1,69 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
-import type { TreeListProps, TreeListRowId } from "./types";
+import type { TreeListFilterState, TreeListProps, TreeListRowId, TreeListSortState } from "./types";
 import {
   buildTreeListNodes,
   findTreeListNode,
+  filterTreeListNodes,
   flattenVisibleTreeListRows,
   getTreeListAlignClass,
   getTreeListColumnId,
   getTreeListColumnStyle,
   getTreeListColumnValue,
+  getNextTreeListSortState,
   getTreeListNodeDescendantIds,
   getTreeListSelectionState,
+  sortTreeListNodes,
 } from "./utils";
 
 const TREE_INDENT_WIDTH = 24;
+const DEFAULT_FILTER: TreeListFilterState = { global: "" };
 
 export function TreeList<T>({
   ariaLabel = "Tree list",
   columns,
   data,
   defaultExpandedRowIds = [],
+  defaultFilter = DEFAULT_FILTER,
+  defaultSort = null,
   defaultSelectedRowIds = [],
   emptyMessage = "No rows found.",
   enableCascadeSelection = false,
   expandedRowIds,
+  filter,
+  filterMode = "include-ancestors",
+  globalFilterPlaceholder = "Search rows...",
   getParentId,
   getRowId,
   onExpandedRowIdsChange,
+  onFilterChange,
   onSelectedRowIdsChange,
+  onSortChange,
   renderEmpty,
   selectedRowIds,
   selectionMode = "none",
+  showGlobalFilter = true,
+  sort,
 }: TreeListProps<T>) {
   const [internalExpandedRowIds, setInternalExpandedRowIds] = useState<TreeListRowId[]>(defaultExpandedRowIds);
   const [internalSelectedRowIds, setInternalSelectedRowIds] = useState<TreeListRowId[]>(defaultSelectedRowIds);
+  const [internalFilter, setInternalFilter] = useState<TreeListFilterState>(defaultFilter);
+  const [internalSort, setInternalSort] = useState<TreeListSortState | null>(defaultSort);
   const activeExpandedRowIds = expandedRowIds === undefined ? internalExpandedRowIds : expandedRowIds;
   const activeSelectedRowIds = selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
+  const activeFilter = filter === undefined ? internalFilter : filter;
+  const activeSort = sort === undefined ? internalSort : sort;
   const treeNodes = useMemo(
     () => buildTreeListNodes({ data, getParentId, getRowId }),
     [data, getParentId, getRowId],
   );
+  const processedTreeNodes = useMemo(
+    () => filterTreeListNodes(sortTreeListNodes(treeNodes, columns, activeSort), columns, activeFilter, filterMode),
+    [activeFilter, activeSort, columns, filterMode, treeNodes],
+  );
   const visibleRows = useMemo(
-    () => flattenVisibleTreeListRows(treeNodes, activeExpandedRowIds),
-    [activeExpandedRowIds, treeNodes],
+    () => flattenVisibleTreeListRows(processedTreeNodes, activeExpandedRowIds),
+    [activeExpandedRowIds, processedTreeNodes],
   );
   const selectedRowIdSet = useMemo(() => new Set(activeSelectedRowIds), [activeSelectedRowIds]);
   const isSelectionEnabled = selectionMode !== "none";
@@ -62,6 +83,22 @@ export function TreeList<T>({
     }
 
     onSelectedRowIdsChange?.(nextSelectedRowIds);
+  }
+
+  function setFilterState(nextFilter: TreeListFilterState) {
+    if (filter === undefined) {
+      setInternalFilter(nextFilter);
+    }
+
+    onFilterChange?.(nextFilter);
+  }
+
+  function setSortState(nextSort: TreeListSortState | null) {
+    if (sort === undefined) {
+      setInternalSort(nextSort);
+    }
+
+    onSortChange?.(nextSort);
   }
 
   function toggleRow(rowId: TreeListRowId) {
@@ -108,6 +145,14 @@ export function TreeList<T>({
     );
   }
 
+  function handleSortToggle(column: typeof columns[number], columnIndex: number) {
+    if (!column.sortable) {
+      return;
+    }
+
+    setSortState(getNextTreeListSortState(column, activeSort, columnIndex));
+  }
+
   function renderCellContent(row: T, column: typeof columns[number], rowIndex: number, depth: number, hasChildren: boolean, isExpanded: boolean): ReactNode {
     const value = getTreeListColumnValue(column, row);
 
@@ -132,6 +177,19 @@ export function TreeList<T>({
 
   return (
     <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
+      {showGlobalFilter ? (
+        <div className="border-b border-gray-200 p-4">
+          <label className="sr-only" htmlFor={`${ariaLabel.replace(/\s+/g, "-").toLowerCase()}-search`}>Search rows</label>
+          <input
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200 sm:max-w-xs"
+            id={`${ariaLabel.replace(/\s+/g, "-").toLowerCase()}-search`}
+            onChange={(event) => setFilterState({ global: event.target.value })}
+            placeholder={globalFilterPlaceholder}
+            type="search"
+            value={activeFilter.global}
+          />
+        </div>
+      ) : null}
       <div className="overflow-auto">
         <table aria-label={ariaLabel} className="min-w-full border-collapse text-sm" role="treegrid">
           <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
@@ -148,7 +206,21 @@ export function TreeList<T>({
                   scope="col"
                   style={getTreeListColumnStyle(column)}
                 >
-                  {column.header}
+                  {!column.sortable ? (
+                    column.header
+                  ) : (
+                    <button
+                      aria-label={`Sort by ${String(column.header)}`}
+                      className="inline-flex items-center gap-1 font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                      onClick={() => handleSortToggle(column, columnIndex)}
+                      type="button"
+                    >
+                      <span>{column.header}</span>
+                      {activeSort?.columnId === getTreeListColumnId(column, columnIndex) ? (
+                        <span aria-hidden="true">{activeSort.direction === "asc" ? "?" : "?"}</span>
+                      ) : null}
+                    </button>
+                  )}
                 </th>
               ))}
             </tr>

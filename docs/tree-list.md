@@ -19,8 +19,8 @@ type Employee = {
 };
 
 const columns: TreeListColumn<Employee>[] = [
-  { accessorKey: "name", header: "Name", width: 280 },
-  { accessorKey: "role", header: "Role" },
+  { accessorKey: "name", header: "Name", sortable: true, width: 280 },
+  { accessorKey: "role", header: "Role", sortable: true },
 ];
 
 export function EmployeeTree({ employees }: { employees: Employee[] }) {
@@ -48,6 +48,15 @@ export function EmployeeTree({ employees }: { employees: Employee[] }) {
 | `getRowId` | `(row: T, index: number) => string \| number` | Returns the stable row id. |
 | `getParentId` | `(row: T) => string \| number \| null \| undefined` | Returns the parent row id. Missing or unknown parents are treated as root rows. |
 | `defaultExpandedRowIds` | `TreeListRowId[]` | Initial expanded row ids for uncontrolled expansion. |
+| `defaultSort` | `TreeListSortState \| null` | Initial sort state for uncontrolled sorting. Sorting is applied to sibling rows. |
+| `sort` | `TreeListSortState \| null` | Controlled sort state. |
+| `onSortChange` | `(sort: TreeListSortState \| null) => void` | Called when a sortable column header is toggled. |
+| `defaultFilter` | `TreeListFilterState` | Initial global filter for uncontrolled filtering. |
+| `filter` | `TreeListFilterState` | Controlled global filter. |
+| `onFilterChange` | `(filter: TreeListFilterState) => void` | Called when the global filter changes. |
+| `filterMode` | `"match-only" \| "include-ancestors" \| "include-descendants"` | Controls how hierarchy is preserved while filtering. Defaults to `"include-ancestors"`. |
+| `showGlobalFilter` | `boolean` | Shows or hides the built-in global search field. |
+| `globalFilterPlaceholder` | `string` | Placeholder text for the global search field. |
 | `selectionMode` | `"none" \| "single" \| "multiple"` | Enables row selection. Defaults to `"none"`. |
 | `defaultSelectedRowIds` | `TreeListRowId[]` | Initial selected row ids for uncontrolled selection. |
 | `selectedRowIds` | `TreeListRowId[]` | Controlled selected row ids. |
@@ -70,6 +79,10 @@ type TreeListColumn<T, TValue = unknown> = {
   header: ReactNode;
   cell?: (context: TreeListCellContext<T, TValue>) => ReactNode;
   render?: (row: T) => ReactNode;
+  sortable?: boolean;
+  sortAccessor?: (row: T) => string | number | Date | null | undefined;
+  filterable?: boolean;
+  filterAccessor?: (row: T) => string | number | boolean | Date | null | undefined;
   align?: "left" | "center" | "right";
   width?: number | string;
 };
@@ -90,7 +103,9 @@ Phase 1 includes:
 - Controlled and uncontrolled expanded state.
 - Single and multiple row selection.
 - Optional cascading parent/child selection.
+- Sibling sorting with controlled and uncontrolled sort state.
+- Global filtering with hierarchy-aware filter modes.
 - Typed columns and custom cell rendering.
 - Empty state rendering.
 
-Sorting, filtering, lazy loading, and virtualization are planned follow-up phases.
+Lazy loading and virtualization are planned follow-up phases.

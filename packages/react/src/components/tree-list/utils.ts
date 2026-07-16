@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { TreeListColumn, TreeListNode, TreeListRowId, TreeListVisibleRow } from "./types";
+import type { TreeListColumn, TreeListFilterMode, TreeListFilterState, TreeListNode, TreeListRowId, TreeListSortState, TreeListVisibleRow } from "./types";
 
 export function getTreeListColumnId<T>(column: TreeListColumn<T>, index = 0) {
   return String(column.id ?? column.accessorKey ?? column.key ?? `column-${index}`);
@@ -113,6 +113,107 @@ export function flattenVisibleTreeListRows<T>(
   return rows;
 }
 
+export function getNextTreeListSortState<T>(
+  column: TreeListColumn<T>,
+  currentSort: TreeListSortState | null,
+  columnIndex = 0,
+): TreeListSortState | null {
+  const columnId = getTreeListColumnId(column, columnIndex);
+
+  if (currentSort?.columnId !== columnId) {
+    return { columnId, direction: "asc" };
+  }
+
+  if (currentSort.direction === "asc") {
+    return { columnId, direction: "desc" };
+  }
+
+  return null;
+}
+
+export function sortTreeListNodes<T>(
+  nodes: TreeListNode<T>[],
+  columns: TreeListColumn<T>[],
+  sort: TreeListSortState | null,
+): TreeListNode<T>[] {
+  if (!sort) {
+    return nodes;
+  }
+
+  const column = columns.find((item, index) => getTreeListColumnId(item, index) === sort.columnId);
+
+  if (!column || !column.sortable) {
+    return nodes;
+  }
+
+  return [...nodes]
+    .sort((firstNode, secondNode) => {
+      const firstValue = getTreeListSortValue(firstNode.row, column);
+      const secondValue = getTreeListSortValue(secondNode.row, column);
+      const comparison = compareTreeListValues(firstValue, secondValue);
+
+      return sort.direction === "asc" ? comparison : comparison * -1;
+    })
+    .map((node) => ({
+      ...node,
+      children: sortTreeListNodes(node.children, columns, sort),
+    }));
+}
+
+export function filterTreeListNodes<T>(
+  nodes: TreeListNode<T>[],
+  columns: TreeListColumn<T>[],
+  filter: TreeListFilterState,
+  filterMode: TreeListFilterMode,
+): TreeListNode<T>[] {
+  const query = filter.global.trim().toLowerCase();
+
+  if (!query) {
+    return nodes;
+  }
+
+  const filterableColumns = columns.filter((column) => column.filterable !== false);
+
+  function matchesNode(node: TreeListNode<T>) {
+    return filterableColumns.some((column) => {
+      const value = getTreeListFilterValue(node.row, column);
+
+      if (value == null) {
+        return false;
+      }
+
+      return String(value).toLowerCase().includes(query);
+    });
+  }
+
+  function collectMatchingNodes(node: TreeListNode<T>): TreeListNode<T>[] {
+    const matchingChildren = node.children.flatMap(collectMatchingNodes);
+
+    return matchesNode(node) ? [{ ...node, children: [] }, ...matchingChildren] : matchingChildren;
+  }
+
+  function filterNode(node: TreeListNode<T>): TreeListNode<T> | null {
+    const isMatch = matchesNode(node);
+    const filteredChildren = node.children
+      .map(filterNode)
+      .filter((child): child is TreeListNode<T> => Boolean(child));
+
+    if (filterMode === "include-descendants") {
+      return isMatch ? node : filteredChildren.length > 0 ? { ...node, children: filteredChildren } : null;
+    }
+
+    return isMatch || filteredChildren.length > 0 ? { ...node, children: filteredChildren } : null;
+  }
+
+  if (filterMode === "match-only") {
+    return nodes.flatMap(collectMatchingNodes);
+  }
+
+  return nodes
+    .map(filterNode)
+    .filter((node): node is TreeListNode<T> => Boolean(node));
+}
+
 export function getTreeListNodeDescendantIds<T>(node: TreeListNode<T>): TreeListRowId[] {
   return node.children.flatMap((child) => [child.id, ...getTreeListNodeDescendantIds(child)]);
 }
@@ -147,6 +248,42 @@ export function getTreeListSelectionState<T>(node: TreeListNode<T>, selectedRowI
     checked: selectedSet.has(node.id) && (descendantIds.length === 0 || selectedCount === selectableIds.length),
     indeterminate: selectedCount > 0 && selectedCount < selectableIds.length,
   };
+}
+
+
+function getTreeListSortValue<T>(row: T, column: TreeListColumn<T>) {
+  return column.sortAccessor ? column.sortAccessor(row) : getTreeListColumnValue(column, row);
+}
+
+function getTreeListFilterValue<T>(row: T, column: TreeListColumn<T>) {
+  return column.filterAccessor ? column.filterAccessor(row) : getTreeListColumnValue(column, row);
+}
+
+function compareTreeListValues(firstValue: unknown, secondValue: unknown): number {
+  if (firstValue == null && secondValue == null) {
+    return 0;
+  }
+
+  if (firstValue == null) {
+    return 1;
+  }
+
+  if (secondValue == null) {
+    return -1;
+  }
+
+  if (firstValue instanceof Date && secondValue instanceof Date) {
+    return firstValue.getTime() - secondValue.getTime();
+  }
+
+  if (typeof firstValue === "number" && typeof secondValue === "number") {
+    return firstValue - secondValue;
+  }
+
+  return String(firstValue).localeCompare(String(secondValue), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function assignDepth<T>(node: TreeListNode<T>, depth: number) {
