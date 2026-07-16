@@ -65,6 +65,10 @@ export function EmployeeTree({ employees }: { employees: Employee[] }) {
 | `columnSizing` | `Record<string, number>` | Controlled column widths in pixels. |
 | `onColumnSizingChange` | `(sizing: Record<string, number>) => void` | Called when keyboard resizing changes a column width. |
 | `enableColumnResizing` | `boolean` | Shows keyboard-accessible resize handles in column headers. |
+| `enableVirtualization` | `boolean` | Renders only the visible row window for large flattened tree data. |
+| `virtualRowHeight` | `number` | Fixed row height used to calculate virtual windows. |
+| `virtualOverscan` | `number` | Extra rows rendered before and after the visible viewport. |
+| `virtualViewportHeight` | `number` | Maximum scroll viewport height in pixels. |
 | `minColumnWidth` | `number` | Minimum column width used by resizing. |
 | `defaultExpandedRowIds` | `TreeListRowId[]` | Initial expanded row ids for uncontrolled expansion. |
 | `defaultSort` | `TreeListSortState \| null` | Initial sort state for uncontrolled sorting. Sorting is applied to sibling rows. |
@@ -136,10 +140,11 @@ Phase 1 includes:
 - Lazy child loading with row-level loading and error hooks.
 - Column ordering, visibility, pinning, sizing, and keyboard resizing.
 - Treegrid keyboard navigation and selection shortcuts.
+- Virtualized rendering for large visible row sets.
 - Typed columns and custom cell rendering.
 - Empty state rendering.
 
-Virtualization is planned as a follow-up phase.
+The current scope covers the core enterprise TreeList feature set. Drag-and-drop row reordering and deeper server query orchestration are possible follow-up phases.
 
 
 ## Lazy Loading
@@ -155,5 +160,23 @@ Use `isRowExpandable` when the server knows a row can have children before they 
   isRowExpandable={(department) => department.hasChildren}
   loadChildren={(department) => fetchDepartmentChildren(department.id)}
   renderLoadingRow={(department) => <span>Loading {department.name}...</span>}
+/>
+```
+
+
+## Virtualization
+
+Virtualization runs after the tree has been flattened to visible rows, so collapsed descendants are not counted in the virtual window. Use a fixed `virtualRowHeight` that matches your row styling.
+
+```tsx
+<TreeList
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  getParentId={(row) => row.parentId}
+  defaultExpandedRowIds={["root"]}
+  enableVirtualization
+  virtualRowHeight={44}
+  virtualViewportHeight={480}
 />
 ```

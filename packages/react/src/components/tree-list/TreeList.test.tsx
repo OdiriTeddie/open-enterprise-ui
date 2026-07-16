@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TreeList } from "./TreeList";
@@ -479,6 +479,53 @@ describe("TreeList", () => {
 
     expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).toBePartiallyChecked();
     expect(screen.getByRole("checkbox", { name: "Select Ava Johnson" })).toBePartiallyChecked();
+  });
+
+
+  it("only renders the visible row window when virtualization is enabled", () => {
+    const virtualEmployees = Array.from({ length: 20 }, (_, index) => ({
+      id: `employee-${index}`,
+      name: `Employee ${index}`,
+      role: "Contributor",
+    }));
+
+    renderTreeList({
+      data: virtualEmployees,
+      enableVirtualization: true,
+      showGlobalFilter: false,
+      virtualOverscan: 0,
+      virtualRowHeight: 10,
+      virtualViewportHeight: 30,
+    });
+
+    expect(screen.getByText("Employee 0")).toBeInTheDocument();
+    expect(screen.getByText("Employee 2")).toBeInTheDocument();
+    expect(screen.queryByText("Employee 3")).not.toBeInTheDocument();
+  });
+
+  it("renders a later visible row window after virtual scroll", () => {
+    const virtualEmployees = Array.from({ length: 20 }, (_, index) => ({
+      id: `employee-${index}`,
+      name: `Employee ${index}`,
+      role: "Contributor",
+    }));
+
+    renderTreeList({
+      data: virtualEmployees,
+      enableVirtualization: true,
+      showGlobalFilter: false,
+      virtualOverscan: 0,
+      virtualRowHeight: 10,
+      virtualViewportHeight: 30,
+    });
+
+    const scrollContainer = screen.getByRole("treegrid").parentElement as HTMLElement;
+
+    fireEvent.scroll(scrollContainer, { target: { scrollTop: 100 } });
+
+    expect(screen.queryByText("Employee 0")).not.toBeInTheDocument();
+    expect(screen.getByText("Employee 10")).toBeInTheDocument();
+    expect(screen.getByText("Employee 12")).toBeInTheDocument();
   });
 
   it("renders an empty state", () => {

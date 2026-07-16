@@ -24,6 +24,9 @@ const DEFAULT_FILTER: TreeListFilterState = { global: "" };
 const DEFAULT_COLUMN_PINNING: TreeListColumnPinningState = { left: [], right: [] };
 const DEFAULT_MIN_COLUMN_WIDTH = 80;
 const COLUMN_RESIZE_KEYBOARD_STEP = 10;
+const DEFAULT_VIRTUAL_ROW_HEIGHT = 48;
+const DEFAULT_VIRTUAL_OVERSCAN = 5;
+const DEFAULT_VIRTUAL_VIEWPORT_HEIGHT = 400;
 
 export function TreeList<T>({
   ariaLabel = "Tree list",
@@ -45,6 +48,7 @@ export function TreeList<T>({
   errorMessage = "Unable to load rows.",
   enableCascadeSelection = false,
   enableColumnResizing = false,
+  enableVirtualization = false,
   expandedRowIds,
   filter,
   filterMode = "include-ancestors",
@@ -69,6 +73,9 @@ export function TreeList<T>({
   selectionMode = "none",
   showGlobalFilter = true,
   sort,
+  virtualOverscan = DEFAULT_VIRTUAL_OVERSCAN,
+  virtualRowHeight = DEFAULT_VIRTUAL_ROW_HEIGHT,
+  virtualViewportHeight = DEFAULT_VIRTUAL_VIEWPORT_HEIGHT,
 }: TreeListProps<T>) {
   const [internalExpandedRowIds, setInternalExpandedRowIds] = useState<TreeListRowId[]>(defaultExpandedRowIds);
   const [internalSelectedRowIds, setInternalSelectedRowIds] = useState<TreeListRowId[]>(defaultSelectedRowIds);
@@ -82,6 +89,7 @@ export function TreeList<T>({
   const [internalLoadingRowIds, setInternalLoadingRowIds] = useState<TreeListRowId[]>([]);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [focusedRowId, setFocusedRowId] = useState<TreeListRowId | null>(null);
+  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
   const activeExpandedRowIds = expandedRowIds === undefined ? internalExpandedRowIds : expandedRowIds;
   const activeSelectedRowIds = selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
   const activeFilter = filter === undefined ? internalFilter : filter;
@@ -114,6 +122,18 @@ export function TreeList<T>({
   const isSelectionEnabled = selectionMode !== "none";
   const columnSpan = renderedColumns.length + (isSelectionEnabled ? 1 : 0);
   const focusedVisibleRowId = focusedRowId && visibleRows.some((row) => row.id === focusedRowId) ? focusedRowId : visibleRows[0]?.id;
+  const virtualRange = useMemo(
+    () => getTreeListVirtualRange({
+      enabled: enableVirtualization,
+      overscan: virtualOverscan,
+      rowCount: visibleRows.length,
+      rowHeight: virtualRowHeight,
+      scrollTop: virtualScrollTop,
+      viewportHeight: virtualViewportHeight,
+    }),
+    [enableVirtualization, virtualOverscan, virtualRowHeight, virtualScrollTop, virtualViewportHeight, visibleRows.length],
+  );
+  const renderedRows = useMemo(() => visibleRows.slice(virtualRange.startIndex, virtualRange.endIndex), [virtualRange, visibleRows]);
 
   function setExpandedRowIds(nextExpandedRowIds: TreeListRowId[]) {
     if (expandedRowIds === undefined) {
@@ -339,7 +359,15 @@ export function TreeList<T>({
           {errorMessage}
         </div>
       ) : null}
-      <div className="overflow-auto">
+      <div
+        className="overflow-auto"
+        onScroll={(event) => {
+          if (enableVirtualization) {
+            setVirtualScrollTop(event.currentTarget.scrollTop);
+          }
+        }}
+        style={enableVirtualization ? { maxHeight: `${virtualViewportHeight}px` } : undefined}
+      >
         <table aria-label={ariaLabel} className="min-w-full border-collapse text-sm" role="treegrid">
           <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
             <tr>
@@ -398,7 +426,14 @@ export function TreeList<T>({
           </thead>
           <tbody className="divide-y divide-gray-100 text-gray-900">
             {visibleRows.length > 0 ? (
-              visibleRows.map((visibleRow, rowIndex) => {
+              <>
+                {virtualRange.topSpacerHeight > 0 ? (
+                  <tr aria-hidden="true">
+                    <td colSpan={columnSpan} style={{ height: `${virtualRange.topSpacerHeight}px`, padding: 0 }} />
+                  </tr>
+                ) : null}
+                {renderedRows.map((visibleRow, renderedRowIndex) => {
+                const rowIndex = virtualRange.startIndex + renderedRowIndex;
                 const selectionNode = enableCascadeSelection ? findTreeListNode(treeNodes, visibleRow.id) : undefined;
                 const selectionState = selectionNode
                   ? getTreeListSelectionState(selectionNode, activeSelectedRowIds)
@@ -469,7 +504,13 @@ export function TreeList<T>({
                   ) : null}
                   </Fragment>
                 );
-              })
+              })}
+                {virtualRange.bottomSpacerHeight > 0 ? (
+                  <tr aria-hidden="true">
+                    <td colSpan={columnSpan} style={{ height: `${virtualRange.bottomSpacerHeight}px`, padding: 0 }} />
+                  </tr>
+                ) : null}
+              </>
             ) : (
               <tr>
                 <td className="px-4 py-10 text-center text-gray-500" colSpan={columnSpan}>
@@ -482,6 +523,48 @@ export function TreeList<T>({
       </div>
     </div>
   );
+}
+
+
+function getTreeListVirtualRange({
+  enabled,
+  overscan,
+  rowCount,
+  rowHeight,
+  scrollTop,
+  viewportHeight,
+}: {
+  enabled: boolean;
+  overscan: number;
+  rowCount: number;
+  rowHeight: number;
+  scrollTop: number;
+  viewportHeight: number;
+}) {
+  if (!enabled || rowCount === 0) {
+    return {
+      bottomSpacerHeight: 0,
+      endIndex: rowCount,
+      startIndex: 0,
+      topSpacerHeight: 0,
+    };
+  }
+
+  const safeRowHeight = Math.max(1, rowHeight);
+  const safeOverscan = Math.max(0, overscan);
+  const safeViewportHeight = Math.max(safeRowHeight, viewportHeight);
+  const visibleRowCount = Math.ceil(safeViewportHeight / safeRowHeight);
+  const renderedRowCount = visibleRowCount + safeOverscan * 2;
+  const maxStartIndex = Math.max(0, rowCount - renderedRowCount);
+  const startIndex = Math.min(maxStartIndex, Math.max(0, Math.floor(scrollTop / safeRowHeight) - safeOverscan));
+  const endIndex = Math.min(rowCount, startIndex + renderedRowCount);
+
+  return {
+    bottomSpacerHeight: Math.max(0, rowCount - endIndex) * safeRowHeight,
+    endIndex,
+    startIndex,
+    topSpacerHeight: startIndex * safeRowHeight,
+  };
 }
 
 function IndeterminateCheckbox({ indeterminate, ...props }: InputHTMLAttributes<HTMLInputElement> & { indeterminate: boolean }) {

@@ -87,6 +87,7 @@ export type TreeListProps<T> = {
   columnVisibility?: TreeListColumnVisibilityState;
   enableCascadeSelection?: boolean;
   enableColumnResizing?: boolean;
+  enableVirtualization?: boolean;
   expandedRowIds?: TreeListRowId[];
   filter?: TreeListFilterState;
   filterMode?: TreeListFilterMode;
@@ -106,6 +107,9 @@ export type TreeListProps<T> = {
   renderEmpty?: () => ReactNode;
   renderLoadingRow?: (row: T) => ReactNode;
   minColumnWidth?: number;
+  virtualOverscan?: number;
+  virtualRowHeight?: number;
+  virtualViewportHeight?: number;
   selectedRowIds?: TreeListRowId[];
   showGlobalFilter?: boolean;
   selectionMode?: TreeListSelectionMode;
