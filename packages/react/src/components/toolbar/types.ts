@@ -1,0 +1,34 @@
+import type { ReactNode } from "react";
+
+export type ToolbarOrientation = "horizontal" | "vertical";
+export type ToolbarSize = "sm" | "md";
+export type ToolbarItemVariant = "default" | "primary" | "danger" | "subtle";
+
+export type ToolbarActionItem = {
+  disabled?: boolean;
+  icon?: ReactNode;
+  id: string;
+  label: ReactNode;
+  onSelect?: () => void;
+  pressed?: boolean;
+  tooltip?: string;
+  type?: "action";
+  variant?: ToolbarItemVariant;
+};
+
+export type ToolbarSeparatorItem = {
+  id: string;
+  type: "separator";
+};
+
+export type ToolbarItem = ToolbarActionItem | ToolbarSeparatorItem;
+
+export type ToolbarProps = {
+  ariaLabel?: string;
+  className?: string;
+  items: ToolbarItem[];
+  leading?: ReactNode;
+  orientation?: ToolbarOrientation;
+  size?: ToolbarSize;
+  trailing?: ReactNode;
+};

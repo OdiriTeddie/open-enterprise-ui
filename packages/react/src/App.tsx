@@ -9,6 +9,7 @@ import { FormExample } from "./components/form";
 import { NavigationExample } from "./components/navigation";
 import { TabsExample } from "./components/tabs";
 import { TreeListExample } from "./components/tree-list";
+import { ToolbarExample } from "./components/toolbar";
 
 function App() {
   return (
@@ -32,6 +33,13 @@ function App() {
           Dialog
         </h1>
         <DialogExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          Toolbar
+        </h1>
+        <ToolbarExample />
       </section>
 
       <section>

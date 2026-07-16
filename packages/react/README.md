@@ -48,6 +48,7 @@ export function UsersTable({ users }: { users: User[] }) {
 
 - DataGrid
 - TreeList
+- Toolbar
 - Field
 - Input
 - Textarea
@@ -75,6 +76,7 @@ export function UsersTable({ users }: { users: User[] }) {
 
 - [DataGrid API](../../docs/data-grid.md)
 - [TreeList API](../../docs/tree-list.md)
+- [Toolbar API](../../docs/toolbar.md)
 - [Server-side DataGrid mode](../../docs/data-grid.md#server-side-mode)
 - [Form primitives](../../docs/form.md)
 - [File Manager API](../../docs/file-manager.md)

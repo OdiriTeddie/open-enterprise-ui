@@ -2,13 +2,13 @@
 
 Open-source UI components for teams building internal tools, admin panels, dashboards, and data-heavy products.
 
-The project currently ships a React package with enterprise-focused `DataGrid`, `TreeList`, form primitives/Form Builder, `FileManager`, `Dialog`, `Drawer`, `Tabs`, and `Navigation` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
+The project currently ships a React package with enterprise-focused `DataGrid`, `TreeList`, form primitives/Form Builder, `FileManager`, `Dialog`, `Drawer`, `Toolbar`, `Tabs`, and `Navigation` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
 
 ## Packages
 
 | Package | Status | Description |
 | --- | --- | --- |
-| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, `TreeList`, forms, `FileManager`, `Dialog`, `Drawer`, `Tabs`, and `Navigation`. |
+| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, `TreeList`, forms, `FileManager`, `Dialog`, `Drawer`, `Toolbar`, `Tabs`, and `Navigation`. |
 | `@open-enterprise-ui/vue` | Planned | Vue components. |
 
 ## Goals
@@ -35,6 +35,7 @@ React is a peer dependency, so your app should already provide `react` and `reac
 - `Form` / `FormBuilder`: accessible form layout, schema-driven forms, validation, async options, dirty state, and server error mapping.
 - `FileManager`: provider-backed folder browsing, context menus, rename/move/copy/upload flows, details panel, permissions, keyboard accessibility, and virtualization.
 - `Dialog`: controlled modal surface with accessible labelling, focus management, Escape/backdrop close, and action slots.
+- `Toolbar`: command bar surface with action items, separators, variants, pressed states, and orientation support.
 - `Drawer`: controlled edge panel for contextual workflows, details views, filters, and secondary forms.
 - `Tabs`: accessible tabbed navigation with controlled/uncontrolled state, disabled tabs, orientation support, and keyboard navigation.
 - `Navigation`: side or top navigation with groups, links, badges, active state, and keyboard movement.
@@ -90,6 +91,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - [Form API](./docs/form.md)
 - [File Manager API](./docs/file-manager.md)
 - [Dialog API](./docs/dialog.md)
+- [Toolbar API](./docs/toolbar.md)
 - [Drawer API](./docs/drawer.md)
 - [Tabs API](./docs/tabs.md)
 - [Navigation API](./docs/navigation.md)
