@@ -8,6 +8,15 @@ const toolbarItems: ToolbarItem[] = [
   { id: "archive", label: "Archive", variant: "subtle" },
   { disabled: true, id: "delete", label: "Delete", variant: "danger" },
   { id: "filters", label: "Filters", pressed: true },
+  {
+    id: "view",
+    items: [
+      { id: "list", label: "List view", selected: true },
+      { id: "grid", label: "Grid view" },
+    ],
+    label: "View",
+    type: "menu",
+  },
 ];
 
 export function ToolbarExample() {
@@ -26,6 +35,8 @@ export type {
   ToolbarActionItem,
   ToolbarItem,
   ToolbarItemVariant,
+  ToolbarMenuOption,
+  ToolbarMenuItem,
   ToolbarOrientation,
   ToolbarProps,
   ToolbarSeparatorItem,

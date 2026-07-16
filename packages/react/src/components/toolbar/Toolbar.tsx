@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import type { ToolbarActionItem, ToolbarItem, ToolbarProps } from "./types";
+import type { ToolbarActionItem, ToolbarItem, ToolbarMenuItem, ToolbarMenuOption, ToolbarProps } from "./types";
 
 const orientationClasses = {
   horizontal: "flex-row flex-wrap items-center",
@@ -25,6 +25,14 @@ const variantClasses = {
 };
 
 function isActionItem(item: ToolbarItem): item is ToolbarActionItem {
+  return item.type === undefined || item.type === "action";
+}
+
+function isMenuItem(item: ToolbarItem): item is ToolbarMenuItem {
+  return item.type === "menu";
+}
+
+function isFocusableItem(item: ToolbarItem): item is ToolbarActionItem | ToolbarMenuItem {
   return item.type !== "separator";
 }
 
@@ -37,19 +45,70 @@ export function Toolbar({
   size = "md",
   trailing,
 }: ToolbarProps) {
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const isVertical = orientation === "vertical";
-  const enabledActionItems = useMemo(() => items.filter((item): item is ToolbarActionItem => isActionItem(item) && !item.disabled), [items]);
+  const enabledActionItems = useMemo(() => items.filter((item): item is ToolbarActionItem | ToolbarMenuItem => isFocusableItem(item) && !item.disabled), [items]);
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [focusedMenuOptionId, setFocusedMenuOptionId] = useState<string | null>(null);
   const activeFocusableItemId = focusedItemId && enabledActionItems.some((item) => item.id === focusedItemId)
     ? focusedItemId
     : enabledActionItems[0]?.id;
+
+  useEffect(() => {
+    function handleDocumentPointerDown(event: PointerEvent) {
+      if (!toolbarRef.current?.contains(event.target as Node)) {
+        setOpenMenuId(null);
+        setFocusedMenuOptionId(null);
+      }
+    }
+
+    document.addEventListener("pointerdown", handleDocumentPointerDown);
+
+    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
+  }, []);
 
   function focusItem(itemId: string) {
     setFocusedItemId(itemId);
     document.querySelector<HTMLElement>(`[data-toolbar-item-id="${CSS.escape(itemId)}"]`)?.focus();
   }
 
-  function moveFocus(currentItem: ToolbarActionItem, direction: 1 | -1) {
+  function focusMenuOption(optionId: string) {
+    setFocusedMenuOptionId(optionId);
+    document.querySelector<HTMLElement>(`[data-toolbar-menu-option-id="${CSS.escape(optionId)}"]`)?.focus();
+  }
+
+  function getEnabledMenuOptions(item: ToolbarMenuItem) {
+    return item.items.filter((option) => !option.disabled);
+  }
+
+  function openMenu(item: ToolbarMenuItem, focus: "first" | "last" = "first") {
+    if (item.disabled) {
+      return;
+    }
+
+    const enabledOptions = getEnabledMenuOptions(item);
+    const nextOption = focus === "last" ? enabledOptions[enabledOptions.length - 1] : enabledOptions[0];
+
+    setOpenMenuId(item.id);
+
+    if (nextOption) {
+      window.setTimeout(() => focusMenuOption(nextOption.id), 0);
+    }
+  }
+
+  function closeMenu({ restoreFocus = true }: { restoreFocus?: boolean } = {}) {
+    const previousMenuId = openMenuId;
+
+    setOpenMenuId(null);
+    setFocusedMenuOptionId(null);
+
+    if (restoreFocus && previousMenuId) {
+      window.setTimeout(() => focusItem(previousMenuId), 0);
+    }
+  }
+
+  function moveFocus(currentItem: ToolbarActionItem | ToolbarMenuItem, direction: 1 | -1) {
     if (enabledActionItems.length === 0) {
       return;
     }
@@ -60,7 +119,7 @@ export function Toolbar({
     focusItem(nextItem.id);
   }
 
-  function handleActionKeyDown(item: ToolbarActionItem, event: KeyboardEvent<HTMLButtonElement>) {
+  function handleActionKeyDown(item: ToolbarActionItem | ToolbarMenuItem, event: KeyboardEvent<HTMLButtonElement>) {
     const previousKey = isVertical ? "ArrowUp" : "ArrowLeft";
     const nextKey = isVertical ? "ArrowDown" : "ArrowRight";
 
@@ -82,9 +141,60 @@ export function Toolbar({
       if (lastItem) {
         focusItem(lastItem.id);
       }
+    } else if (isMenuItem(item) && event.key === "ArrowDown") {
+      event.preventDefault();
+      openMenu(item);
+    } else if (isMenuItem(item) && event.key === "ArrowUp") {
+      event.preventDefault();
+      openMenu(item, "last");
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      handleSelect(item);
+
+      if (isMenuItem(item)) {
+        if (openMenuId === item.id) {
+          closeMenu();
+        } else {
+          openMenu(item);
+        }
+      } else {
+        handleSelect(item);
+      }
+    } else if (event.key === "Escape" && openMenuId) {
+      event.preventDefault();
+      closeMenu();
+    }
+  }
+
+  function handleMenuOptionKeyDown(item: ToolbarMenuItem, option: ToolbarMenuOption, event: KeyboardEvent<HTMLButtonElement>) {
+    const enabledOptions = getEnabledMenuOptions(item);
+    const currentIndex = Math.max(0, enabledOptions.findIndex((entry) => entry.id === option.id));
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const nextOption = enabledOptions[(currentIndex + 1) % enabledOptions.length];
+      focusMenuOption(nextOption.id);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const previousOption = enabledOptions[(currentIndex - 1 + enabledOptions.length) % enabledOptions.length];
+      focusMenuOption(previousOption.id);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      const firstOption = enabledOptions[0];
+      if (firstOption) {
+        focusMenuOption(firstOption.id);
+      }
+    } else if (event.key === "End") {
+      event.preventDefault();
+      const lastOption = enabledOptions[enabledOptions.length - 1];
+      if (lastOption) {
+        focusMenuOption(lastOption.id);
+      }
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeMenu();
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleMenuOptionSelect(option);
     }
   }
 
@@ -96,17 +206,101 @@ export function Toolbar({
     item.onSelect?.();
   }
 
+  function handleMenuOptionSelect(option: ToolbarMenuOption) {
+    if (option.disabled) {
+      return;
+    }
+
+    option.onSelect?.();
+    closeMenu();
+  }
+
+  function renderActionButton(item: ToolbarActionItem | ToolbarMenuItem) {
+    const isMenu = isMenuItem(item);
+    const isOpen = isMenu && openMenuId === item.id;
+
+    return (
+      <button
+        aria-expanded={isMenu ? isOpen : undefined}
+        aria-haspopup={isMenu ? "menu" : undefined}
+        aria-pressed={isActionItem(item) ? item.pressed : undefined}
+        className={`inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${buttonSizeClasses[size]} ${variantClasses[item.variant ?? "default"]}`}
+        data-toolbar-item-id={item.id}
+        disabled={item.disabled}
+        key={item.id}
+        onClick={() => {
+          if (isMenu) {
+            if (isOpen) {
+              closeMenu();
+            } else {
+              openMenu(item);
+            }
+          } else {
+            handleSelect(item);
+          }
+        }}
+        onFocus={() => setFocusedItemId(item.id)}
+        onKeyDown={(event) => handleActionKeyDown(item, event)}
+        tabIndex={item.disabled ? -1 : item.id === activeFocusableItemId ? 0 : -1}
+        title={item.tooltip}
+        type="button"
+      >
+        {item.icon ? <span aria-hidden="true" className="shrink-0">{item.icon}</span> : null}
+        <span>{item.label}</span>
+        {isMenu ? <span aria-hidden="true" className="text-xs">v</span> : null}
+      </button>
+    );
+  }
+
+  function renderMenu(item: ToolbarMenuItem) {
+    if (openMenuId !== item.id) {
+      return null;
+    }
+
+    const enabledOptions = getEnabledMenuOptions(item);
+    const activeOptionId = focusedMenuOptionId && enabledOptions.some((option) => option.id === focusedMenuOptionId)
+      ? focusedMenuOptionId
+      : enabledOptions[0]?.id;
+
+    return (
+      <div
+        aria-label={`${String(item.label)} menu`}
+        className="absolute left-0 top-full z-50 mt-1 min-w-40 rounded-md border border-gray-200 bg-white p-1 text-sm shadow-lg"
+        role="menu"
+      >
+        {item.items.map((option) => (
+          <button
+            aria-checked={option.selected}
+            className="flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left text-gray-700 outline-none hover:bg-gray-100 focus:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+            data-toolbar-menu-option-id={option.id}
+            disabled={option.disabled}
+            key={option.id}
+            onClick={() => handleMenuOptionSelect(option)}
+            onKeyDown={(event) => handleMenuOptionKeyDown(item, option, event)}
+            role={option.selected === undefined ? "menuitem" : "menuitemcheckbox"}
+            tabIndex={option.disabled ? -1 : option.id === activeOptionId ? 0 : -1}
+            type="button"
+          >
+            <span>{option.label}</span>
+            {option.selected ? <span aria-hidden="true">check</span> : null}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div
       aria-label={ariaLabel}
       aria-orientation={orientation}
       className={`flex rounded-md border border-gray-200 bg-white ${orientationClasses[orientation]} ${sizeClasses[size]} ${className}`}
+      ref={toolbarRef}
       role="toolbar"
     >
       {leading ? <div className={isVertical ? "mb-1" : "mr-1"}>{leading}</div> : null}
 
       {items.map((item) => {
-        if (!isActionItem(item)) {
+        if (!isFocusableItem(item)) {
           return (
             <div
               aria-orientation={orientation}
@@ -118,22 +312,10 @@ export function Toolbar({
         }
 
         return (
-          <button
-            aria-pressed={item.pressed}
-            className={`inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${buttonSizeClasses[size]} ${variantClasses[item.variant ?? "default"]}`}
-            data-toolbar-item-id={item.id}
-            disabled={item.disabled}
-            key={item.id}
-            onClick={() => handleSelect(item)}
-            onFocus={() => setFocusedItemId(item.id)}
-            onKeyDown={(event) => handleActionKeyDown(item, event)}
-            tabIndex={item.disabled ? -1 : item.id === activeFocusableItemId ? 0 : -1}
-            title={item.tooltip}
-            type="button"
-          >
-            {item.icon ? <span aria-hidden="true" className="shrink-0">{item.icon}</span> : null}
-            <span>{item.label}</span>
-          </button>
+          <div className="relative" key={item.id}>
+            {renderActionButton(item)}
+            {isMenuItem(item) ? renderMenu(item) : null}
+          </div>
         );
       })}
 

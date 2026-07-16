@@ -125,4 +125,133 @@ describe("Toolbar", () => {
     expect(onSelect).toHaveBeenCalledTimes(2);
   });
 
+
+  it("opens a menu item and selects an option", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "view",
+            items: [{ id: "grid", label: "Grid", onSelect }],
+            label: "View",
+            type: "menu",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "View" }));
+
+    expect(screen.getByRole("menu", { name: "View menu" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "Grid" }));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("menu", { name: "View menu" })).not.toBeInTheDocument();
+  });
+
+  it("opens menus with keyboard and selects focused options", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "view",
+            items: [
+              { id: "list", label: "List" },
+              { id: "grid", label: "Grid", onSelect },
+            ],
+            label: "View",
+            type: "menu",
+          },
+        ]}
+      />,
+    );
+
+    screen.getByRole("button", { name: "View" }).focus();
+    await user.keyboard("{ArrowDown}");
+
+    expect(screen.getByRole("menuitem", { name: "List" })).toHaveFocus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Grid" })).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes open menus with Escape", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "view",
+            items: [{ id: "list", label: "List" }],
+            label: "View",
+            type: "menu",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "View" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("menu", { name: "View menu" })).not.toBeInTheDocument();
+  });
+
+  it("closes open menus on outside click", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <div>
+        <Toolbar
+          items={[
+            {
+              id: "view",
+              items: [{ id: "list", label: "List" }],
+              label: "View",
+              type: "menu",
+            },
+          ]}
+        />
+        <button type="button">Outside</button>
+      </div>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "View" }));
+    await user.click(screen.getByRole("button", { name: "Outside" }));
+
+    expect(screen.queryByRole("menu", { name: "View menu" })).not.toBeInTheDocument();
+  });
+
+  it("renders selected menu options as menuitemcheckbox", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "density",
+            items: [{ id: "compact", label: "Compact", selected: true }],
+            label: "Density",
+            type: "menu",
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Density" }));
+
+    expect(screen.getByRole("menuitemcheckbox", { name: "Compact" })).toHaveAttribute("aria-checked", "true");
+  });
+
 });

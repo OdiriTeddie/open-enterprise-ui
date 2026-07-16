@@ -72,6 +72,8 @@ export type {
   ToolbarActionItem,
   ToolbarItem,
   ToolbarItemVariant,
+  ToolbarMenuOption,
+  ToolbarMenuItem,
   ToolbarOrientation,
   ToolbarProps,
   ToolbarSeparatorItem,

@@ -17,6 +17,15 @@ const items: ToolbarItem[] = [
   { id: "separator", type: "separator" },
   { id: "filters", label: "Filters", pressed: true },
   { id: "delete", label: "Delete", variant: "danger", disabled: true },
+  {
+    id: "view",
+    type: "menu",
+    label: "View",
+    items: [
+      { id: "list", label: "List view", selected: true },
+      { id: "grid", label: "Grid view", onSelect: setGridView },
+    ],
+  },
 ];
 
 <Toolbar ariaLabel="File commands" items={items} />;
@@ -49,6 +58,25 @@ type ToolbarActionItem = {
   onSelect?: () => void;
 };
 
+type ToolbarMenuOption = {
+  id: string;
+  label: ReactNode;
+  disabled?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
+};
+
+type ToolbarMenuItem = {
+  id: string;
+  type: "menu";
+  label: ReactNode;
+  icon?: ReactNode;
+  disabled?: boolean;
+  variant?: "default" | "primary" | "danger" | "subtle";
+  tooltip?: string;
+  items: ToolbarMenuOption[];
+};
+
 type ToolbarSeparatorItem = {
   id: string;
   type: "separator";
@@ -65,7 +93,11 @@ Keyboard behavior:
 - `ArrowDown` / `ArrowUp` move focus in vertical toolbars.
 - `Home` moves focus to the first enabled action.
 - `End` moves focus to the last enabled action.
-- `Enter` and `Space` activate the focused action.
-- Disabled actions and separators are skipped.
+- `Enter` and `Space` activate the focused action or open a focused menu.
+- `ArrowDown` opens a focused menu and focuses the first option.
+- `ArrowUp` opens a focused menu and focuses the last option.
+- Open menus use `ArrowUp`, `ArrowDown`, `Home`, `End`, `Enter`, `Space`, and `Escape`.
+- Disabled actions, disabled menu options, and separators are skipped.
+- Outside clicks close open menus.
 
-Menus and overflow handling are planned follow-up phases.
+Overflow handling is planned as a follow-up phase.

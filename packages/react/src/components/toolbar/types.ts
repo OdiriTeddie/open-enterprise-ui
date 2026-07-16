@@ -16,12 +16,31 @@ export type ToolbarActionItem = {
   variant?: ToolbarItemVariant;
 };
 
+export type ToolbarMenuOption = {
+  disabled?: boolean;
+  id: string;
+  label: ReactNode;
+  onSelect?: () => void;
+  selected?: boolean;
+};
+
+export type ToolbarMenuItem = {
+  disabled?: boolean;
+  icon?: ReactNode;
+  id: string;
+  items: ToolbarMenuOption[];
+  label: ReactNode;
+  tooltip?: string;
+  type: "menu";
+  variant?: ToolbarItemVariant;
+};
+
 export type ToolbarSeparatorItem = {
   id: string;
   type: "separator";
 };
 
-export type ToolbarItem = ToolbarActionItem | ToolbarSeparatorItem;
+export type ToolbarItem = ToolbarActionItem | ToolbarMenuItem | ToolbarSeparatorItem;
 
 export type ToolbarProps = {
   ariaLabel?: string;
