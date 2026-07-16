@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
-import type { TreeListFilterState, TreeListProps, TreeListRowId, TreeListSortState } from "./types";
+import type { TreeListColumnPinningState, TreeListColumnSizingState, TreeListFilterState, TreeListProps, TreeListRowId, TreeListSortState } from "./types";
 import {
   buildTreeListNodes,
   findTreeListNode,
@@ -8,21 +8,35 @@ import {
   flattenVisibleTreeListRows,
   getTreeListAlignClass,
   getTreeListColumnId,
-  getTreeListColumnStyle,
+  getTreeListResolvedColumnStyle,
   getTreeListColumnValue,
   getNextTreeListSortState,
   getTreeListNodeDescendantIds,
   getTreeListSelectionState,
+  filterVisibleTreeListColumns,
+  orderTreeListColumns,
+  pinTreeListColumns,
   sortTreeListNodes,
 } from "./utils";
 
 const TREE_INDENT_WIDTH = 24;
 const DEFAULT_FILTER: TreeListFilterState = { global: "" };
+const DEFAULT_COLUMN_PINNING: TreeListColumnPinningState = { left: [], right: [] };
+const DEFAULT_MIN_COLUMN_WIDTH = 80;
+const COLUMN_RESIZE_KEYBOARD_STEP = 10;
 
 export function TreeList<T>({
   ariaLabel = "Tree list",
   columns,
   data,
+  columnOrder,
+  columnPinning,
+  columnSizing,
+  columnVisibility,
+  defaultColumnOrder = [],
+  defaultColumnPinning = DEFAULT_COLUMN_PINNING,
+  defaultColumnSizing = {},
+  defaultColumnVisibility = {},
   defaultExpandedRowIds = [],
   defaultFilter = DEFAULT_FILTER,
   defaultSort = null,
@@ -30,6 +44,7 @@ export function TreeList<T>({
   emptyMessage = "No rows found.",
   errorMessage = "Unable to load rows.",
   enableCascadeSelection = false,
+  enableColumnResizing = false,
   expandedRowIds,
   filter,
   filterMode = "include-ancestors",
@@ -39,6 +54,7 @@ export function TreeList<T>({
   isRowExpandable,
   loadChildren,
   loadingRowIds,
+  onColumnSizingChange,
   onExpandedRowIdsChange,
   onError,
   onFilterChange,
@@ -48,6 +64,7 @@ export function TreeList<T>({
   onSortChange,
   renderEmpty,
   renderLoadingRow,
+  minColumnWidth = DEFAULT_MIN_COLUMN_WIDTH,
   selectedRowIds,
   selectionMode = "none",
   showGlobalFilter = true,
@@ -57,6 +74,10 @@ export function TreeList<T>({
   const [internalSelectedRowIds, setInternalSelectedRowIds] = useState<TreeListRowId[]>(defaultSelectedRowIds);
   const [internalFilter, setInternalFilter] = useState<TreeListFilterState>(defaultFilter);
   const [internalSort, setInternalSort] = useState<TreeListSortState | null>(defaultSort);
+  const [internalColumnSizing, setInternalColumnSizing] = useState<TreeListColumnSizingState>(defaultColumnSizing);
+  const [internalColumnOrder] = useState(defaultColumnOrder);
+  const [internalColumnVisibility] = useState(defaultColumnVisibility);
+  const [internalColumnPinning] = useState(defaultColumnPinning);
   const [loadedChildren, setLoadedChildren] = useState<T[]>([]);
   const [internalLoadingRowIds, setInternalLoadingRowIds] = useState<TreeListRowId[]>([]);
   const [loadError, setLoadError] = useState<unknown>(null);
@@ -64,15 +85,22 @@ export function TreeList<T>({
   const activeSelectedRowIds = selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
   const activeFilter = filter === undefined ? internalFilter : filter;
   const activeSort = sort === undefined ? internalSort : sort;
+  const activeColumnSizing = columnSizing === undefined ? internalColumnSizing : columnSizing;
+  const activeColumnOrder = columnOrder === undefined ? internalColumnOrder : columnOrder;
+  const activeColumnVisibility = columnVisibility === undefined ? internalColumnVisibility : columnVisibility;
+  const activeColumnPinning = columnPinning === undefined ? internalColumnPinning : columnPinning;
   const activeLoadingRowIds = loadingRowIds === undefined ? internalLoadingRowIds : loadingRowIds;
   const mergedData = useMemo(() => [...data, ...loadedChildren], [data, loadedChildren]);
+  const orderedColumns = useMemo(() => orderTreeListColumns(columns, activeColumnOrder), [activeColumnOrder, columns]);
+  const visibleColumns = useMemo(() => filterVisibleTreeListColumns(orderedColumns, activeColumnVisibility), [activeColumnVisibility, orderedColumns]);
+  const renderedColumns = useMemo(() => pinTreeListColumns(visibleColumns, activeColumnPinning), [activeColumnPinning, visibleColumns]);
   const treeNodes = useMemo(
     () => buildTreeListNodes({ data: mergedData, getParentId, getRowId }),
     [mergedData, getParentId, getRowId],
   );
   const processedTreeNodes = useMemo(
-    () => filterTreeListNodes(sortTreeListNodes(treeNodes, columns, activeSort), columns, activeFilter, filterMode),
-    [activeFilter, activeSort, columns, filterMode, treeNodes],
+    () => filterTreeListNodes(sortTreeListNodes(treeNodes, renderedColumns, activeSort), renderedColumns, activeFilter, filterMode),
+    [activeFilter, activeSort, renderedColumns, filterMode, treeNodes],
   );
   const visibleRows = useMemo(
     () => flattenVisibleTreeListRows(processedTreeNodes, activeExpandedRowIds, {
@@ -83,7 +111,7 @@ export function TreeList<T>({
   );
   const selectedRowIdSet = useMemo(() => new Set(activeSelectedRowIds), [activeSelectedRowIds]);
   const isSelectionEnabled = selectionMode !== "none";
-  const columnSpan = columns.length + (isSelectionEnabled ? 1 : 0);
+  const columnSpan = renderedColumns.length + (isSelectionEnabled ? 1 : 0);
 
   function setExpandedRowIds(nextExpandedRowIds: TreeListRowId[]) {
     if (expandedRowIds === undefined) {
@@ -107,6 +135,21 @@ export function TreeList<T>({
     }
 
     onFilterChange?.(nextFilter);
+  }
+
+  function setColumnSizingState(nextColumnSizing: TreeListColumnSizingState) {
+    if (columnSizing === undefined) {
+      setInternalColumnSizing(nextColumnSizing);
+    }
+
+    onColumnSizingChange?.(nextColumnSizing);
+  }
+
+  function resizeColumn(columnId: string, nextWidth: number) {
+    setColumnSizingState({
+      ...activeColumnSizing,
+      [columnId]: Math.max(nextWidth, minColumnWidth),
+    });
   }
 
   function setSortState(nextSort: TreeListSortState | null) {
@@ -258,12 +301,12 @@ export function TreeList<T>({
                   <span className="sr-only">Select row</span>
                 </th>
               ) : null}
-              {columns.map((column, columnIndex) => (
+              {renderedColumns.map((column, columnIndex) => (
                 <th
                   className={`border-b border-gray-200 px-4 py-3 ${getTreeListAlignClass(column)}`}
                   key={getTreeListColumnId(column, columnIndex)}
                   scope="col"
-                  style={getTreeListColumnStyle(column)}
+                  style={getTreeListResolvedColumnStyle(column, activeColumnSizing, minColumnWidth, columnIndex)}
                 >
                   {!column.sortable ? (
                     column.header
@@ -280,6 +323,27 @@ export function TreeList<T>({
                       ) : null}
                     </button>
                   )}
+                  {enableColumnResizing ? (
+                    <button
+                      aria-label={`Resize ${String(column.header)}`}
+                      className="ml-2 inline-flex h-5 w-2 cursor-col-resize items-center justify-center rounded-sm border border-transparent text-gray-400 hover:border-gray-300 focus:border-gray-400 focus:outline-none"
+                      onKeyDown={(event) => {
+                        const columnId = getTreeListColumnId(column, columnIndex);
+                        const currentWidth = activeColumnSizing[columnId] ?? (typeof column.width === "number" ? column.width : minColumnWidth);
+
+                        if (event.key === "ArrowLeft") {
+                          event.preventDefault();
+                          resizeColumn(columnId, currentWidth - COLUMN_RESIZE_KEYBOARD_STEP);
+                        } else if (event.key === "ArrowRight") {
+                          event.preventDefault();
+                          resizeColumn(columnId, currentWidth + COLUMN_RESIZE_KEYBOARD_STEP);
+                        }
+                      }}
+                      type="button"
+                    >
+                      <span aria-hidden="true">|</span>
+                    </button>
+                  ) : null}
                 </th>
               ))}
             </tr>
@@ -310,14 +374,14 @@ export function TreeList<T>({
                         />
                       </td>
                     ) : null}
-                    {columns.map((column, columnIndex) => {
+                    {renderedColumns.map((column, columnIndex) => {
                       const isTreeColumn = columnIndex === 0;
 
                       return (
                         <td
                           className={`px-4 py-3 align-middle ${getTreeListAlignClass(column)}`}
                           key={getTreeListColumnId(column, columnIndex)}
-                          style={getTreeListColumnStyle(column)}
+                          style={getTreeListResolvedColumnStyle(column, activeColumnSizing, minColumnWidth, columnIndex)}
                         >
                           {isTreeColumn ? (
                             <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: visibleRow.depth * TREE_INDENT_WIDTH }}>

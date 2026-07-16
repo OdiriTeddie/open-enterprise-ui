@@ -225,6 +225,63 @@ describe("TreeList", () => {
   });
 
 
+
+  it("orders columns from column order state", () => {
+    renderTreeList({
+      columns: sortableColumns,
+      defaultColumnOrder: ["role", "name"],
+    });
+
+    const headers = screen.getAllByRole("columnheader");
+
+    expect(headers[0]).toHaveTextContent("Role");
+    expect(headers[1]).toHaveTextContent("Name");
+  });
+
+  it("hides columns from column visibility state", () => {
+    renderTreeList({
+      columns: sortableColumns,
+      defaultColumnVisibility: { role: false },
+    });
+
+    expect(screen.getByRole("columnheader", { name: /name/i })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: /role/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("CEO")).not.toBeInTheDocument();
+  });
+
+  it("pins columns to the left and right", () => {
+    renderTreeList({
+      columns: [
+        { accessorKey: "name", header: "Name" },
+        { accessorKey: "role", header: "Role" },
+        { accessorFn: (employee: Employee) => employee.id, header: "ID", id: "id" },
+      ],
+      defaultColumnPinning: { left: ["role"], right: ["name"] },
+    });
+
+    const headers = screen.getAllByRole("columnheader");
+
+    expect(headers[0]).toHaveTextContent("Role");
+    expect(headers[1]).toHaveTextContent("ID");
+    expect(headers[2]).toHaveTextContent("Name");
+  });
+
+  it("resizes columns with keyboard controls", async () => {
+    const user = userEvent.setup();
+    const onColumnSizingChange = vi.fn();
+
+    renderTreeList({
+      columns: [{ accessorKey: "name", header: "Name", width: 160 }, { accessorKey: "role", header: "Role" }],
+      enableColumnResizing: true,
+      onColumnSizingChange,
+    });
+
+    screen.getByRole("button", { name: "Resize Name" }).focus();
+    await user.keyboard("{ArrowRight}");
+
+    expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 170 });
+  });
+
   it("loads children when an expandable row is opened", async () => {
     const user = userEvent.setup();
     const loadChildren = vi.fn().mockResolvedValue([

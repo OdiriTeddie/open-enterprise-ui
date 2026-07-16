@@ -5,6 +5,13 @@ export type TreeListColumnAlign = "left" | "center" | "right";
 export type TreeListSelectionMode = "none" | "single" | "multiple";
 export type TreeListSortDirection = "asc" | "desc";
 export type TreeListFilterMode = "match-only" | "include-ancestors" | "include-descendants";
+export type TreeListColumnSizingState = Record<string, number>;
+export type TreeListColumnVisibilityState = Record<string, boolean>;
+export type TreeListColumnOrderState = string[];
+export type TreeListColumnPinningState = {
+  left: string[];
+  right: string[];
+};
 
 export type TreeListSortState = {
   columnId: string;
@@ -64,13 +71,22 @@ export type TreeListProps<T> = {
   ariaLabel?: string;
   columns: TreeListColumn<T>[];
   data: T[];
+  defaultColumnOrder?: TreeListColumnOrderState;
+  defaultColumnPinning?: TreeListColumnPinningState;
+  defaultColumnSizing?: TreeListColumnSizingState;
+  defaultColumnVisibility?: TreeListColumnVisibilityState;
   defaultExpandedRowIds?: TreeListRowId[];
   defaultFilter?: TreeListFilterState;
   defaultSort?: TreeListSortState | null;
   defaultSelectedRowIds?: TreeListRowId[];
   emptyMessage?: string;
   errorMessage?: string;
+  columnOrder?: TreeListColumnOrderState;
+  columnPinning?: TreeListColumnPinningState;
+  columnSizing?: TreeListColumnSizingState;
+  columnVisibility?: TreeListColumnVisibilityState;
   enableCascadeSelection?: boolean;
+  enableColumnResizing?: boolean;
   expandedRowIds?: TreeListRowId[];
   filter?: TreeListFilterState;
   filterMode?: TreeListFilterMode;
@@ -83,11 +99,13 @@ export type TreeListProps<T> = {
   onExpandedRowIdsChange?: (expandedRowIds: TreeListRowId[]) => void;
   onError?: (error: unknown) => void;
   onFilterChange?: (filter: TreeListFilterState) => void;
+  onColumnSizingChange?: (columnSizing: TreeListColumnSizingState) => void;
   onRowCollapse?: (row: T) => void;
   onRowExpand?: (row: T) => void;
   onSelectedRowIdsChange?: (selectedRowIds: TreeListRowId[]) => void;
   renderEmpty?: () => ReactNode;
   renderLoadingRow?: (row: T) => ReactNode;
+  minColumnWidth?: number;
   selectedRowIds?: TreeListRowId[];
   showGlobalFilter?: boolean;
   selectionMode?: TreeListSelectionMode;

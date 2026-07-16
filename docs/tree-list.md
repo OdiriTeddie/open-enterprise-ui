@@ -55,6 +55,17 @@ export function EmployeeTree({ employees }: { employees: Employee[] }) {
 | `onError` | `(error: unknown) => void` | Called when `loadChildren` rejects. |
 | `errorMessage` | `string` | Error text rendered when lazy loading fails. |
 | `getParentId` | `(row: T) => string \| number \| null \| undefined` | Returns the parent row id. Missing or unknown parents are treated as root rows. |
+| `defaultColumnOrder` | `string[]` | Initial column order for uncontrolled ordering. |
+| `columnOrder` | `string[]` | Controlled column order. |
+| `defaultColumnVisibility` | `Record<string, boolean>` | Initial column visibility map. Set a column id to `false` to hide it. |
+| `columnVisibility` | `Record<string, boolean>` | Controlled column visibility map. |
+| `defaultColumnPinning` | `{ left: string[]; right: string[] }` | Initial pinned column ids. |
+| `columnPinning` | `{ left: string[]; right: string[] }` | Controlled pinned column ids. |
+| `defaultColumnSizing` | `Record<string, number>` | Initial column widths in pixels. |
+| `columnSizing` | `Record<string, number>` | Controlled column widths in pixels. |
+| `onColumnSizingChange` | `(sizing: Record<string, number>) => void` | Called when keyboard resizing changes a column width. |
+| `enableColumnResizing` | `boolean` | Shows keyboard-accessible resize handles in column headers. |
+| `minColumnWidth` | `number` | Minimum column width used by resizing. |
 | `defaultExpandedRowIds` | `TreeListRowId[]` | Initial expanded row ids for uncontrolled expansion. |
 | `defaultSort` | `TreeListSortState \| null` | Initial sort state for uncontrolled sorting. Sorting is applied to sibling rows. |
 | `sort` | `TreeListSortState \| null` | Controlled sort state. |
@@ -114,6 +125,7 @@ Phase 1 includes:
 - Sibling sorting with controlled and uncontrolled sort state.
 - Global filtering with hierarchy-aware filter modes.
 - Lazy child loading with row-level loading and error hooks.
+- Column ordering, visibility, pinning, sizing, and keyboard resizing.
 - Typed columns and custom cell rendering.
 - Empty state rendering.
 

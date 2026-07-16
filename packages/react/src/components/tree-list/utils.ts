@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { TreeListColumn, TreeListFilterMode, TreeListFilterState, TreeListNode, TreeListRowId, TreeListSortState, TreeListVisibleRow } from "./types";
+import type { TreeListColumn, TreeListColumnOrderState, TreeListColumnPinningState, TreeListColumnSizingState, TreeListColumnVisibilityState, TreeListFilterMode, TreeListFilterState, TreeListNode, TreeListRowId, TreeListSortState, TreeListVisibleRow } from "./types";
 
 export function getTreeListColumnId<T>(column: TreeListColumn<T>, index = 0) {
   return String(column.id ?? column.accessorKey ?? column.key ?? `column-${index}`);
@@ -39,6 +39,75 @@ export function getTreeListAlignClass<T>(column: TreeListColumn<T>) {
   }
 
   return "text-left";
+}
+
+export function orderTreeListColumns<T>(
+  columns: TreeListColumn<T>[],
+  columnOrder: TreeListColumnOrderState,
+): TreeListColumn<T>[] {
+  if (columnOrder.length === 0) {
+    return columns;
+  }
+
+  const columnsById = new Map(columns.map((column, index) => [getTreeListColumnId(column, index), column] as const));
+  const orderedColumns: TreeListColumn<T>[] = [];
+  const orderedColumnIds = new Set<string>();
+
+  columnOrder.forEach((columnId) => {
+    const column = columnsById.get(columnId);
+
+    if (column) {
+      orderedColumns.push(column);
+      orderedColumnIds.add(columnId);
+    }
+  });
+
+  columns.forEach((column, index) => {
+    const columnId = getTreeListColumnId(column, index);
+
+    if (!orderedColumnIds.has(columnId)) {
+      orderedColumns.push(column);
+    }
+  });
+
+  return orderedColumns;
+}
+
+export function filterVisibleTreeListColumns<T>(
+  columns: TreeListColumn<T>[],
+  columnVisibility: TreeListColumnVisibilityState,
+): TreeListColumn<T>[] {
+  return columns.filter((column, index) => columnVisibility[getTreeListColumnId(column, index)] !== false);
+}
+
+export function pinTreeListColumns<T>(
+  columns: TreeListColumn<T>[],
+  columnPinning: TreeListColumnPinningState,
+): TreeListColumn<T>[] {
+  const pinnedLeftColumnIds = new Set(columnPinning.left);
+  const pinnedColumnIds = new Set([...columnPinning.left, ...columnPinning.right]);
+  const byId = (columnId: string) => columns.find((column, index) => getTreeListColumnId(column, index) === columnId);
+  const leftColumns = columnPinning.left.map(byId).filter((column): column is TreeListColumn<T> => Boolean(column));
+  const centerColumns = columns.filter((column, index) => !pinnedColumnIds.has(getTreeListColumnId(column, index)));
+  const rightColumns = columnPinning.right.map(byId).filter((column): column is TreeListColumn<T> => Boolean(column));
+
+  return [...leftColumns, ...centerColumns, ...rightColumns.filter((column, index) => !pinnedLeftColumnIds.has(getTreeListColumnId(column, index)))];
+}
+
+export function getTreeListResolvedColumnStyle<T>(
+  column: TreeListColumn<T>,
+  columnSizing: TreeListColumnSizingState,
+  minColumnWidth: number,
+  columnIndex = 0,
+): CSSProperties | undefined {
+  const columnId = getTreeListColumnId(column, columnIndex);
+  const sizedWidth = columnSizing[columnId];
+
+  if (sizedWidth !== undefined) {
+    return { width: `${Math.max(sizedWidth, minColumnWidth)}px` };
+  }
+
+  return getTreeListColumnStyle(column);
 }
 
 export function buildTreeListNodes<T>({
