@@ -1,4 +1,5 @@
 ﻿import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Drawer } from "../drawer";
 import type { KeyboardEvent, MouseEvent, ReactNode, UIEvent } from "react";
 import type {
   FileManagerBreadcrumb,
@@ -142,16 +143,13 @@ export function FileManager({
         setTransferDialog(null);
       } else if (uploadDialogOpen) {
         setUploadDialogOpen(false);
-      } else if (detailsItem) {
-        setDetailsItem(null);
-        onDetailsClose?.();
       }
     }
 
     document.addEventListener("keydown", handleDocumentKeyDown);
 
     return () => document.removeEventListener("keydown", handleDocumentKeyDown);
-  }, [activeContextMenu, detailsItem, onDetailsClose, renameItem, transferDialog, uploadDialogOpen]);
+  }, [activeContextMenu, renameItem, transferDialog, uploadDialogOpen]);
 
   useEffect(() => {
     if (!dataProvider) {
@@ -754,8 +752,6 @@ export function FileManager({
       setTransferDialog(null);
     } else if (uploadDialogOpen) {
       setUploadDialogOpen(false);
-    } else if (detailsItem) {
-      handleDetailsClose();
     }
   }
 
@@ -1049,15 +1045,19 @@ export function FileManager({
 
       {renderContent()}
 
-      {detailsItem ? (
-        <aside aria-label={`Details for ${detailsItem.name}`} className="absolute inset-y-0 right-0 z-30 w-full max-w-sm border-l border-gray-200 bg-white shadow-xl" role="dialog">
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-            <h2 className="text-base font-semibold text-gray-900">Details</h2>
-            <button className="rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900" onClick={handleDetailsClose} type="button">
-              Close
-            </button>
-          </div>
-          <div className="space-y-4 p-4 text-sm">
+      <Drawer
+        closeOnBackdropClick={false}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleDetailsClose();
+          }
+        }}
+        open={Boolean(detailsItem)}
+        size="sm"
+        title={detailsItem ? `Details for ${detailsItem.name}` : "Details"}
+      >
+        {detailsItem ? (
+          <div className="space-y-4 text-sm">
             {renderDetails ? (
               renderDetails(detailsItem)
             ) : (
@@ -1093,8 +1093,8 @@ export function FileManager({
               </dl>
             )}
           </div>
-        </aside>
-      ) : null}
+        ) : null}
+      </Drawer>
 
       {activeContextMenu ? (
         <div className="fixed inset-0 z-40" onClick={() => setActiveContextMenu(null)}>

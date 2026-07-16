@@ -516,7 +516,7 @@ describe("FileManager", () => {
     expect(within(dialog).getByText("2.0 KB")).toBeInTheDocument();
     expect(onDetailsOpen).toHaveBeenCalledWith(items[1]);
 
-    await user.click(screen.getByRole("button", { name: "Close" }));
+    await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog", { name: "Details for Report.pdf" })).not.toBeInTheDocument();
     expect(onDetailsClose).toHaveBeenCalled();
