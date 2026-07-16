@@ -1,4 +1,5 @@
 ﻿import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Dialog } from "../dialog";
 import { Drawer } from "../drawer";
 import type { KeyboardEvent, MouseEvent, ReactNode, UIEvent } from "react";
 import type {
@@ -1136,53 +1137,72 @@ export function FileManager({
       ) : null}
 
 
-      {uploadDialogOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
-          <div aria-label="Upload files" className="w-full max-w-md rounded-md bg-white p-4 shadow-lg" role="dialog">
-            <h2 className="text-base font-semibold text-gray-900">Upload files</h2>
-            <p className="mt-1 text-sm text-gray-600">Choose one or more files to upload to this folder.</p>
-            <label className="mt-3 flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600 hover:border-gray-400" htmlFor={`${searchInputId}-upload`}>
-              <span className="font-medium text-gray-900">Select files</span>
-              <span className="mt-1">Drag files here in your app, or browse from your device.</span>
-            </label>
-            <input
-              className="sr-only"
-              id={`${searchInputId}-upload`}
-              multiple
-              onChange={(event) => {
-                setUploadFiles(Array.from(event.target.files ?? []));
-                setUploadError(undefined);
-              }}
-              type="file"
-            />
-            {uploadFiles.length > 0 ? (
-              <ul className="mt-3 max-h-32 space-y-1 overflow-auto text-sm text-gray-700">
-                {uploadFiles.map((file) => (
-                  <li className="flex justify-between gap-3 rounded bg-gray-50 px-2 py-1" key={`${file.name}-${file.size}`}>
-                    <span className="truncate">{file.name}</span>
-                    <span className="shrink-0 text-gray-500">{formatFileSize(file.size)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {uploadError ? <div className="mt-2 text-sm text-red-700" role="alert">{uploadError}</div> : null}
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={uploading} onClick={() => setUploadDialogOpen(false)} type="button">
-                Cancel
-              </button>
-              <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={uploading} onClick={() => void handleUploadSubmit()} type="button">
-                {uploading ? "Uploading..." : "Upload"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {transferDialog ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
-          <div aria-label={`${transferDialog.mode === "copy" ? "Copy" : "Move"} ${transferDialog.item.name}`} className="w-full max-w-sm rounded-md bg-white p-4 shadow-lg" role="dialog">
-            <h2 className="text-base font-semibold text-gray-900">{transferDialog.mode === "copy" ? "Copy" : "Move"}</h2>
-            <p className="mt-1 text-sm text-gray-600">Choose a destination for {transferDialog.item.name}.</p>
-            <label className="mt-3 block text-sm font-medium text-gray-700" htmlFor={`${searchInputId}-transfer`}>
+      <Dialog
+        actions={(
+          <>
+            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-60" disabled={uploading} onClick={() => setUploadDialogOpen(false)} type="button">
+              Cancel
+            </button>
+            <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60" disabled={uploading} onClick={() => void handleUploadSubmit()} type="button">
+              {uploading ? "Uploading..." : "Upload"}
+            </button>
+          </>
+        )}
+        description="Choose one or more files to upload to this folder."
+        onOpenChange={(open) => setUploadDialogOpen(open)}
+        open={uploadDialogOpen}
+        title="Upload files"
+      >
+        <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600 hover:border-gray-400" htmlFor={`${searchInputId}-upload`}>
+          <span className="font-medium text-gray-900">Select files</span>
+          <span className="mt-1">Drag files here in your app, or browse from your device.</span>
+        </label>
+        <input
+          className="sr-only"
+          id={`${searchInputId}-upload`}
+          multiple
+          onChange={(event) => {
+            setUploadFiles(Array.from(event.target.files ?? []));
+            setUploadError(undefined);
+          }}
+          type="file"
+        />
+        {uploadFiles.length > 0 ? (
+          <ul className="mt-3 max-h-32 space-y-1 overflow-auto text-sm text-gray-700">
+            {uploadFiles.map((file) => (
+              <li className="flex justify-between gap-3 rounded bg-gray-50 px-2 py-1" key={`${file.name}-${file.size}`}>
+                <span className="truncate">{file.name}</span>
+                <span className="shrink-0 text-gray-500">{formatFileSize(file.size)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {uploadError ? <div className="mt-2 text-sm text-red-700" role="alert">{uploadError}</div> : null}
+      </Dialog>
+      <Dialog
+        actions={transferDialog ? (
+          <>
+            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700" onClick={() => setTransferDialog(null)} type="button">
+              Cancel
+            </button>
+            <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white" onClick={() => void handleTransferSubmit()} type="button">
+              {transferDialog.mode === "copy" ? "Copy" : "Move"}
+            </button>
+          </>
+        ) : null}
+        description={transferDialog ? `Choose a destination for ${transferDialog.item.name}.` : undefined}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTransferDialog(null);
+          }
+        }}
+        open={Boolean(transferDialog)}
+        size="sm"
+        title={transferDialog ? `${transferDialog.mode === "copy" ? "Copy" : "Move"} ${transferDialog.item.name}` : "Transfer item"}
+      >
+        {transferDialog ? (
+          <>
+            <label className="block text-sm font-medium text-gray-700" htmlFor={`${searchInputId}-transfer`}>
               Destination
             </label>
             <select
@@ -1199,22 +1219,32 @@ export function FileManager({
                 ))}
             </select>
             {transferError ? <div className="mt-2 text-sm text-red-700" role="alert">{transferError}</div> : null}
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700" onClick={() => setTransferDialog(null)} type="button">
-                Cancel
-              </button>
-              <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white" onClick={() => void handleTransferSubmit()} type="button">
-                {transferDialog.mode === "copy" ? "Copy" : "Move"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {renameItem ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" role="presentation">
-          <div aria-label={`Rename ${renameItem.name}`} className="w-full max-w-sm rounded-md bg-white p-4 shadow-lg" role="dialog">
-            <h2 className="text-base font-semibold text-gray-900">Rename</h2>
-            <label className="mt-3 block text-sm font-medium text-gray-700" htmlFor={`${searchInputId}-rename`}>
+          </>
+        ) : null}
+      </Dialog>
+      <Dialog
+        actions={renameItem ? (
+          <>
+            <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700" onClick={() => setRenameItem(null)} type="button">
+              Cancel
+            </button>
+            <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white" onClick={() => void handleRenameSubmit()} type="button">
+              Save
+            </button>
+          </>
+        ) : null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenameItem(null);
+          }
+        }}
+        open={Boolean(renameItem)}
+        size="sm"
+        title={renameItem ? `Rename ${renameItem.name}` : "Rename"}
+      >
+        {renameItem ? (
+          <>
+            <label className="block text-sm font-medium text-gray-700" htmlFor={`${searchInputId}-rename`}>
               Name
             </label>
             <input
@@ -1225,17 +1255,9 @@ export function FileManager({
               value={renameValue}
             />
             {renameError ? <div className="mt-2 text-sm text-red-700" role="alert">{renameError}</div> : null}
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700" onClick={() => setRenameItem(null)} type="button">
-                Cancel
-              </button>
-              <button className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white" onClick={() => void handleRenameSubmit()} type="button">
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </Dialog>
     </section>
   );
 }
