@@ -58,17 +58,17 @@ describe("TreeList", () => {
 
     renderTreeList();
 
-    await user.click(screen.getByRole("button", { name: "Expand row" }));
+    await user.click(screen.getByRole("button", { name: "Expand Maya Chen" }));
 
     expect(screen.getByText("Ava Johnson")).toBeInTheDocument();
     expect(screen.getByText("Noah Singh")).toBeInTheDocument();
     expect(screen.queryByText("Elias Martin")).not.toBeInTheDocument();
 
-    await user.click(within(screen.getByText("Ava Johnson").closest("tr") as HTMLElement).getByRole("button", { name: "Expand row" }));
+    await user.click(within(screen.getByText("Ava Johnson").closest("tr") as HTMLElement).getByRole("button", { name: "Expand Ava Johnson" }));
 
     expect(screen.getByText("Elias Martin")).toBeInTheDocument();
 
-    await user.click(within(screen.getByText("Maya Chen").closest("tr") as HTMLElement).getByRole("button", { name: "Collapse row" }));
+    await user.click(within(screen.getByText("Maya Chen").closest("tr") as HTMLElement).getByRole("button", { name: "Collapse Maya Chen" }));
 
     expect(screen.queryByText("Ava Johnson")).not.toBeInTheDocument();
   });
@@ -91,7 +91,7 @@ describe("TreeList", () => {
 
     expect(screen.getByText("Ava Johnson")).toBeInTheDocument();
 
-    await user.click(within(screen.getByText("Ava Johnson").closest("tr") as HTMLElement).getByRole("button", { name: "Expand row" }));
+    await user.click(within(screen.getByText("Ava Johnson").closest("tr") as HTMLElement).getByRole("button", { name: "Expand Ava Johnson" }));
 
     expect(onExpandedRowIdsChange).toHaveBeenCalledWith(["ceo", "eng"]);
     expect(screen.queryByText("Elias Martin")).not.toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("TreeList", () => {
     expect(within(rows[2]).getByText("Ava Johnson")).toBeInTheDocument();
     expect(within(rows[3]).getByText("Noah Singh")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Sort by Name" }));
+    await user.click(screen.getByRole("button", { name: "Sort by Name, asc" }));
 
     const descendingRows = screen.getAllByRole("row");
 
@@ -154,7 +154,7 @@ describe("TreeList", () => {
       sort: { columnId: "name", direction: "asc" },
     });
 
-    await user.click(screen.getByRole("button", { name: "Sort by Name" }));
+    await user.click(screen.getByRole("button", { name: "Sort by Name, asc" }));
 
     expect(onSortChange).toHaveBeenCalledWith({ columnId: "name", direction: "desc" });
   });
@@ -276,7 +276,7 @@ describe("TreeList", () => {
       onColumnSizingChange,
     });
 
-    screen.getByRole("button", { name: "Resize Name" }).focus();
+    screen.getByRole("button", { name: "Resize Name column" }).focus();
     await user.keyboard("{ArrowRight}");
 
     expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 170 });
@@ -296,7 +296,7 @@ describe("TreeList", () => {
       onRowExpand,
     });
 
-    await user.click(screen.getByRole("button", { name: "Expand row" }));
+    await user.click(screen.getByRole("button", { name: "Expand Maya Chen" }));
 
     expect(loadChildren).toHaveBeenCalledWith(employees[0]);
     expect(onRowExpand).toHaveBeenCalledWith(employees[0]);
@@ -324,7 +324,7 @@ describe("TreeList", () => {
       onRowCollapse,
     });
 
-    await user.click(screen.getByRole("button", { name: "Collapse row" }));
+    await user.click(screen.getByRole("button", { name: "Collapse Maya Chen" }));
 
     expect(onRowCollapse).toHaveBeenCalledWith(employees[0]);
   });
@@ -342,10 +342,68 @@ describe("TreeList", () => {
       onError,
     });
 
-    await user.click(screen.getByRole("button", { name: "Expand row" }));
+    await user.click(screen.getByRole("button", { name: "Expand Maya Chen" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not load children.");
     expect(onError).toHaveBeenCalledWith(error);
+  });
+
+
+  it("exposes sortable header aria-sort state", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({ columns: sortableColumns });
+
+    await user.click(screen.getByRole("button", { name: "Sort by Name" }));
+
+    expect(screen.getByRole("columnheader", { name: /name/i })).toHaveAttribute("aria-sort", "ascending");
+    expect(screen.getByRole("button", { name: "Sort by Name, asc" })).toBeInTheDocument();
+  });
+
+  it("supports row keyboard navigation", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({ defaultExpandedRowIds: ["ceo"] });
+
+    const rows = screen.getAllByRole("row");
+    rows[1].focus();
+
+    await user.keyboard("{ArrowDown}");
+
+    expect(screen.getByText("Ava Johnson").closest("tr")).toHaveAttribute("tabindex", "0");
+
+    await user.keyboard("{End}");
+
+    expect(screen.getByText("Noah Singh").closest("tr")).toHaveAttribute("tabindex", "0");
+  });
+
+  it("expands and collapses focused rows with arrow keys", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList();
+
+    const rootRow = screen.getByText("Maya Chen").closest("tr") as HTMLElement;
+    rootRow.focus();
+
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByText("Ava Johnson")).toBeInTheDocument();
+
+    await user.keyboard("{ArrowLeft}");
+
+    expect(screen.queryByText("Ava Johnson")).not.toBeInTheDocument();
+  });
+
+  it("toggles focused row selection with keyboard", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({ selectionMode: "multiple" });
+
+    const rootRow = screen.getByText("Maya Chen").closest("tr") as HTMLElement;
+    rootRow.focus();
+    await user.keyboard(" ");
+
+    expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).toBeChecked();
   });
 
   it("supports single row selection", async () => {
@@ -353,11 +411,11 @@ describe("TreeList", () => {
 
     renderTreeList({ defaultExpandedRowIds: ["ceo"], selectionMode: "single" });
 
-    await user.click(screen.getByRole("checkbox", { name: "Select row ceo" }));
-    await user.click(screen.getByRole("checkbox", { name: "Select row eng" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Maya Chen" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Ava Johnson" }));
 
-    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).not.toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Ava Johnson" })).toBeChecked();
   });
 
   it("supports multiple row selection", async () => {
@@ -365,11 +423,11 @@ describe("TreeList", () => {
 
     renderTreeList({ defaultExpandedRowIds: ["ceo"], selectionMode: "multiple" });
 
-    await user.click(screen.getByRole("checkbox", { name: "Select row ceo" }));
-    await user.click(screen.getByRole("checkbox", { name: "Select row eng" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Maya Chen" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Ava Johnson" }));
 
-    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Ava Johnson" })).toBeChecked();
   });
 
   it("supports controlled row selection", async () => {
@@ -383,12 +441,12 @@ describe("TreeList", () => {
       selectionMode: "multiple",
     });
 
-    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).toBeChecked();
 
-    await user.click(screen.getByRole("checkbox", { name: "Select row eng" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Ava Johnson" }));
 
     expect(onSelectedRowIdsChange).toHaveBeenCalledWith(["ceo", "eng"]);
-    expect(screen.getByRole("checkbox", { name: "Select row eng" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Ava Johnson" })).not.toBeChecked();
   });
 
   it("cascades parent selection to descendants", async () => {
@@ -400,12 +458,12 @@ describe("TreeList", () => {
       selectionMode: "multiple",
     });
 
-    await user.click(screen.getByRole("checkbox", { name: "Select row ceo" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Maya Chen" }));
 
-    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Select row platform" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Select row ops" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Ava Johnson" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Elias Martin" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Noah Singh" })).toBeChecked();
   });
 
   it("shows indeterminate parent state for partial cascade selection", async () => {
@@ -417,10 +475,10 @@ describe("TreeList", () => {
       selectionMode: "multiple",
     });
 
-    await user.click(screen.getByRole("checkbox", { name: "Select row platform" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select Elias Martin" }));
 
-    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBePartiallyChecked();
-    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBePartiallyChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Maya Chen" })).toBePartiallyChecked();
+    expect(screen.getByRole("checkbox", { name: "Select Ava Johnson" })).toBePartiallyChecked();
   });
 
   it("renders an empty state", () => {

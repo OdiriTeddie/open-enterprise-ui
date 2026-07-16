@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { InputHTMLAttributes, KeyboardEvent, ReactNode } from "react";
 import type { TreeListColumnPinningState, TreeListColumnSizingState, TreeListFilterState, TreeListProps, TreeListRowId, TreeListSortState } from "./types";
 import {
   buildTreeListNodes,
@@ -81,6 +81,7 @@ export function TreeList<T>({
   const [loadedChildren, setLoadedChildren] = useState<T[]>([]);
   const [internalLoadingRowIds, setInternalLoadingRowIds] = useState<TreeListRowId[]>([]);
   const [loadError, setLoadError] = useState<unknown>(null);
+  const [focusedRowId, setFocusedRowId] = useState<TreeListRowId | null>(null);
   const activeExpandedRowIds = expandedRowIds === undefined ? internalExpandedRowIds : expandedRowIds;
   const activeSelectedRowIds = selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
   const activeFilter = filter === undefined ? internalFilter : filter;
@@ -112,6 +113,7 @@ export function TreeList<T>({
   const selectedRowIdSet = useMemo(() => new Set(activeSelectedRowIds), [activeSelectedRowIds]);
   const isSelectionEnabled = selectionMode !== "none";
   const columnSpan = renderedColumns.length + (isSelectionEnabled ? 1 : 0);
+  const focusedVisibleRowId = focusedRowId && visibleRows.some((row) => row.id === focusedRowId) ? focusedRowId : visibleRows[0]?.id;
 
   function setExpandedRowIds(nextExpandedRowIds: TreeListRowId[]) {
     if (expandedRowIds === undefined) {
@@ -241,6 +243,51 @@ export function TreeList<T>({
     );
   }
 
+  function getRowLabel(row: T, rowIndex: number) {
+    const firstColumn = renderedColumns[0];
+
+    if (!firstColumn) {
+      return String(getRowId(row, rowIndex));
+    }
+
+    const value = getTreeListColumnValue(firstColumn, row);
+
+    return value == null ? String(getRowId(row, rowIndex)) : String(value);
+  }
+
+  function focusVisibleRowByIndex(rowIndex: number) {
+    const nextRow = visibleRows[rowIndex];
+
+    if (nextRow) {
+      setFocusedRowId(nextRow.id);
+    }
+  }
+
+  function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, rowIndex: number, rowId: TreeListRowId, row: T, hasChildren: boolean, isExpanded: boolean) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusVisibleRowByIndex(Math.min(rowIndex + 1, visibleRows.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusVisibleRowByIndex(Math.max(rowIndex - 1, 0));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      focusVisibleRowByIndex(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      focusVisibleRowByIndex(visibleRows.length - 1);
+    } else if (event.key === "ArrowRight" && hasChildren && !isExpanded) {
+      event.preventDefault();
+      void toggleRow(rowId, row);
+    } else if (event.key === "ArrowLeft" && hasChildren && isExpanded) {
+      event.preventDefault();
+      void toggleRow(rowId, row);
+    } else if ((event.key === " " || event.key === "Enter") && isSelectionEnabled) {
+      event.preventDefault();
+      toggleSelection(rowId);
+    }
+  }
+
   function handleSortToggle(column: typeof columns[number], columnIndex: number) {
     if (!column.sortable) {
       return;
@@ -305,6 +352,7 @@ export function TreeList<T>({
                 <th
                   className={`border-b border-gray-200 px-4 py-3 ${getTreeListAlignClass(column)}`}
                   key={getTreeListColumnId(column, columnIndex)}
+                  aria-sort={activeSort?.columnId === getTreeListColumnId(column, columnIndex) ? (activeSort.direction === "asc" ? "ascending" : "descending") : undefined}
                   scope="col"
                   style={getTreeListResolvedColumnStyle(column, activeColumnSizing, minColumnWidth, columnIndex)}
                 >
@@ -312,7 +360,7 @@ export function TreeList<T>({
                     column.header
                   ) : (
                     <button
-                      aria-label={`Sort by ${String(column.header)}`}
+                      aria-label={`Sort by ${String(column.header)}${activeSort?.columnId === getTreeListColumnId(column, columnIndex) ? `, ${activeSort.direction}` : ""}`}
                       className="inline-flex items-center gap-1 font-medium text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300"
                       onClick={() => handleSortToggle(column, columnIndex)}
                       type="button"
@@ -325,7 +373,7 @@ export function TreeList<T>({
                   )}
                   {enableColumnResizing ? (
                     <button
-                      aria-label={`Resize ${String(column.header)}`}
+                      aria-label={`Resize ${String(column.header)} column`}
                       className="ml-2 inline-flex h-5 w-2 cursor-col-resize items-center justify-center rounded-sm border border-transparent text-gray-400 hover:border-gray-300 focus:border-gray-400 focus:outline-none"
                       onKeyDown={(event) => {
                         const columnId = getTreeListColumnId(column, columnIndex);
@@ -362,12 +410,15 @@ export function TreeList<T>({
                     aria-expanded={visibleRow.hasChildren ? visibleRow.isExpanded : undefined}
                     aria-level={visibleRow.depth + 1}
                     aria-selected={isSelectionEnabled ? selectedRowIdSet.has(visibleRow.id) : undefined}
-                    className="hover:bg-gray-50"
+                    className="hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400"
+                    onFocus={() => setFocusedRowId(visibleRow.id)}
+                    onKeyDown={(event) => handleRowKeyDown(event, rowIndex, visibleRow.id, visibleRow.row, visibleRow.hasChildren, visibleRow.isExpanded)}
+                    tabIndex={visibleRow.id === focusedVisibleRowId ? 0 : -1}
                   >
                     {isSelectionEnabled ? (
                       <td className="px-4 py-3 align-middle">
                         <IndeterminateCheckbox
-                          aria-label={`Select row ${visibleRow.id}`}
+                          aria-label={`Select ${getRowLabel(visibleRow.row, rowIndex)}`}
                           checked={selectionState.checked}
                           indeterminate={selectionState.indeterminate}
                           onChange={() => toggleSelection(visibleRow.id)}
@@ -387,7 +438,7 @@ export function TreeList<T>({
                             <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: visibleRow.depth * TREE_INDENT_WIDTH }}>
                               {visibleRow.hasChildren ? (
                                 <button
-                                  aria-label={`${visibleRow.isExpanded ? "Collapse" : "Expand"} row`}
+                                  aria-label={`${visibleRow.isExpanded ? "Collapse" : "Expand"} ${getRowLabel(visibleRow.row, rowIndex)}`}
                                   aria-expanded={visibleRow.isExpanded}
                                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
                                   onClick={() => void toggleRow(visibleRow.id, visibleRow.row)}

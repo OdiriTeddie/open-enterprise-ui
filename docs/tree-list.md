@@ -111,7 +111,16 @@ The first column is the tree column. It receives indentation and the expand/coll
 
 ## Accessibility
 
-`TreeList` renders a `treegrid` with row `aria-level` and `aria-expanded` state. Expand/collapse controls are real buttons with accessible labels.
+`TreeList` renders a `treegrid` with row `aria-level`, `aria-expanded`, and `aria-selected` state where applicable. Expand/collapse and resize controls are real buttons with row- or column-specific accessible labels. Sortable headers expose `aria-sort`.
+
+Keyboard behavior:
+
+- `ArrowDown` and `ArrowUp` move focus between visible rows.
+- `Home` and `End` move focus to the first or last visible row.
+- `ArrowRight` expands a focused expandable row.
+- `ArrowLeft` collapses a focused expanded row.
+- `Space` or `Enter` toggles selection when selection is enabled.
+- Column resize handles support `ArrowLeft` and `ArrowRight`.
 
 ## Current Scope
 
@@ -126,6 +135,7 @@ Phase 1 includes:
 - Global filtering with hierarchy-aware filter modes.
 - Lazy child loading with row-level loading and error hooks.
 - Column ordering, visibility, pinning, sizing, and keyboard resizing.
+- Treegrid keyboard navigation and selection shortcuts.
 - Typed columns and custom cell rendering.
 - Empty state rendering.
 
