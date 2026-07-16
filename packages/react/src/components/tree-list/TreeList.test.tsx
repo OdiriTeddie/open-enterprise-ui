@@ -224,6 +224,73 @@ describe("TreeList", () => {
     expect(screen.queryByText("Noah Singh")).not.toBeInTheDocument();
   });
 
+
+  it("loads children when an expandable row is opened", async () => {
+    const user = userEvent.setup();
+    const loadChildren = vi.fn().mockResolvedValue([
+      { id: "remote-child", managerId: "ceo", name: "Remote Child", role: "Director" },
+    ]);
+    const onRowExpand = vi.fn();
+
+    renderTreeList({
+      data: [employees[0]],
+      isRowExpandable: (employee: Employee) => employee.id === "ceo",
+      loadChildren,
+      onRowExpand,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Expand row" }));
+
+    expect(loadChildren).toHaveBeenCalledWith(employees[0]);
+    expect(onRowExpand).toHaveBeenCalledWith(employees[0]);
+    expect(await screen.findByText("Remote Child")).toBeInTheDocument();
+  });
+
+  it("renders loading rows while children are loading", () => {
+    renderTreeList({
+      data: [employees[0]],
+      expandedRowIds: ["ceo"],
+      isRowExpandable: (employee: Employee) => employee.id === "ceo",
+      loadingRowIds: ["ceo"],
+      renderLoadingRow: (employee: Employee) => <span>Loading {employee.name}</span>,
+    });
+
+    expect(screen.getByText("Loading Maya Chen")).toBeInTheDocument();
+  });
+
+  it("calls collapse callback when an expanded row is closed", async () => {
+    const user = userEvent.setup();
+    const onRowCollapse = vi.fn();
+
+    renderTreeList({
+      defaultExpandedRowIds: ["ceo"],
+      onRowCollapse,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Collapse row" }));
+
+    expect(onRowCollapse).toHaveBeenCalledWith(employees[0]);
+  });
+
+  it("reports lazy loading errors", async () => {
+    const user = userEvent.setup();
+    const error = new Error("Network failed");
+    const onError = vi.fn();
+
+    renderTreeList({
+      data: [employees[0]],
+      errorMessage: "Could not load children.",
+      isRowExpandable: (employee: Employee) => employee.id === "ceo",
+      loadChildren: vi.fn().mockRejectedValue(error),
+      onError,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Expand row" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load children.");
+    expect(onError).toHaveBeenCalledWith(error);
+  });
+
   it("supports single row selection", async () => {
     const user = userEvent.setup();
 

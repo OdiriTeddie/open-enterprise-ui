@@ -86,12 +86,17 @@ export function buildTreeListNodes<T>({
 export function flattenVisibleTreeListRows<T>(
   nodes: TreeListNode<T>[],
   expandedRowIds: TreeListRowId[],
+  options: {
+    isRowExpandable?: (row: T) => boolean;
+    loadingRowIds?: TreeListRowId[];
+  } = {},
 ): TreeListVisibleRow<T>[] {
   const expandedSet = new Set(expandedRowIds);
+  const loadingSet = new Set(options.loadingRowIds ?? []);
   const rows: TreeListVisibleRow<T>[] = [];
 
   function visit(node: TreeListNode<T>) {
-    const hasChildren = node.children.length > 0;
+    const hasChildren = node.children.length > 0 || Boolean(options.isRowExpandable?.(node.row));
     const isExpanded = hasChildren && expandedSet.has(node.id);
 
     rows.push({
@@ -99,6 +104,7 @@ export function flattenVisibleTreeListRows<T>(
       hasChildren,
       id: node.id,
       isExpanded,
+      isLoading: loadingSet.has(node.id),
       parentId: node.parentId,
       row: node.row,
     });

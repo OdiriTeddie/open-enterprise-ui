@@ -20,6 +20,7 @@ export type TreeListCellContext<T, TValue = unknown> = {
   depth: number;
   hasChildren: boolean;
   isExpanded: boolean;
+  isLoading: boolean;
   row: T;
   rowIndex: number;
   value: TValue;
@@ -54,6 +55,7 @@ export type TreeListVisibleRow<T> = {
   hasChildren: boolean;
   id: TreeListRowId;
   isExpanded: boolean;
+  isLoading: boolean;
   parentId: TreeListRowId | null;
   row: T;
 };
@@ -67,6 +69,7 @@ export type TreeListProps<T> = {
   defaultSort?: TreeListSortState | null;
   defaultSelectedRowIds?: TreeListRowId[];
   emptyMessage?: string;
+  errorMessage?: string;
   enableCascadeSelection?: boolean;
   expandedRowIds?: TreeListRowId[];
   filter?: TreeListFilterState;
@@ -74,10 +77,17 @@ export type TreeListProps<T> = {
   globalFilterPlaceholder?: string;
   getParentId?: (row: T) => TreeListRowId | null | undefined;
   getRowId: (row: T, index: number) => TreeListRowId;
+  isRowExpandable?: (row: T) => boolean;
+  loadChildren?: (row: T) => T[] | Promise<T[]>;
+  loadingRowIds?: TreeListRowId[];
   onExpandedRowIdsChange?: (expandedRowIds: TreeListRowId[]) => void;
+  onError?: (error: unknown) => void;
   onFilterChange?: (filter: TreeListFilterState) => void;
+  onRowCollapse?: (row: T) => void;
+  onRowExpand?: (row: T) => void;
   onSelectedRowIdsChange?: (selectedRowIds: TreeListRowId[]) => void;
   renderEmpty?: () => ReactNode;
+  renderLoadingRow?: (row: T) => ReactNode;
   selectedRowIds?: TreeListRowId[];
   showGlobalFilter?: boolean;
   selectionMode?: TreeListSelectionMode;

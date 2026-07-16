@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import type { TreeListFilterState, TreeListProps, TreeListRowId, TreeListSortState } from "./types";
 import {
@@ -28,6 +28,7 @@ export function TreeList<T>({
   defaultSort = null,
   defaultSelectedRowIds = [],
   emptyMessage = "No rows found.",
+  errorMessage = "Unable to load rows.",
   enableCascadeSelection = false,
   expandedRowIds,
   filter,
@@ -35,11 +36,18 @@ export function TreeList<T>({
   globalFilterPlaceholder = "Search rows...",
   getParentId,
   getRowId,
+  isRowExpandable,
+  loadChildren,
+  loadingRowIds,
   onExpandedRowIdsChange,
+  onError,
   onFilterChange,
+  onRowCollapse,
+  onRowExpand,
   onSelectedRowIdsChange,
   onSortChange,
   renderEmpty,
+  renderLoadingRow,
   selectedRowIds,
   selectionMode = "none",
   showGlobalFilter = true,
@@ -49,21 +57,29 @@ export function TreeList<T>({
   const [internalSelectedRowIds, setInternalSelectedRowIds] = useState<TreeListRowId[]>(defaultSelectedRowIds);
   const [internalFilter, setInternalFilter] = useState<TreeListFilterState>(defaultFilter);
   const [internalSort, setInternalSort] = useState<TreeListSortState | null>(defaultSort);
+  const [loadedChildren, setLoadedChildren] = useState<T[]>([]);
+  const [internalLoadingRowIds, setInternalLoadingRowIds] = useState<TreeListRowId[]>([]);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const activeExpandedRowIds = expandedRowIds === undefined ? internalExpandedRowIds : expandedRowIds;
   const activeSelectedRowIds = selectedRowIds === undefined ? internalSelectedRowIds : selectedRowIds;
   const activeFilter = filter === undefined ? internalFilter : filter;
   const activeSort = sort === undefined ? internalSort : sort;
+  const activeLoadingRowIds = loadingRowIds === undefined ? internalLoadingRowIds : loadingRowIds;
+  const mergedData = useMemo(() => [...data, ...loadedChildren], [data, loadedChildren]);
   const treeNodes = useMemo(
-    () => buildTreeListNodes({ data, getParentId, getRowId }),
-    [data, getParentId, getRowId],
+    () => buildTreeListNodes({ data: mergedData, getParentId, getRowId }),
+    [mergedData, getParentId, getRowId],
   );
   const processedTreeNodes = useMemo(
     () => filterTreeListNodes(sortTreeListNodes(treeNodes, columns, activeSort), columns, activeFilter, filterMode),
     [activeFilter, activeSort, columns, filterMode, treeNodes],
   );
   const visibleRows = useMemo(
-    () => flattenVisibleTreeListRows(processedTreeNodes, activeExpandedRowIds),
-    [activeExpandedRowIds, processedTreeNodes],
+    () => flattenVisibleTreeListRows(processedTreeNodes, activeExpandedRowIds, {
+      isRowExpandable,
+      loadingRowIds: activeLoadingRowIds,
+    }),
+    [activeExpandedRowIds, activeLoadingRowIds, isRowExpandable, processedTreeNodes],
   );
   const selectedRowIdSet = useMemo(() => new Set(activeSelectedRowIds), [activeSelectedRowIds]);
   const isSelectionEnabled = selectionMode !== "none";
@@ -101,13 +117,50 @@ export function TreeList<T>({
     onSortChange?.(nextSort);
   }
 
-  function toggleRow(rowId: TreeListRowId) {
-    const isExpanded = activeExpandedRowIds.includes(rowId);
-    const nextExpandedRowIds = isExpanded
-      ? activeExpandedRowIds.filter((expandedRowId) => expandedRowId !== rowId)
-      : [...activeExpandedRowIds, rowId];
+  function setLoadingRowIds(nextLoadingRowIds: TreeListRowId[]) {
+    if (loadingRowIds === undefined) {
+      setInternalLoadingRowIds(nextLoadingRowIds);
+    }
+  }
 
-    setExpandedRowIds(nextExpandedRowIds);
+  async function toggleRow(rowId: TreeListRowId, row: T) {
+    const isExpanded = activeExpandedRowIds.includes(rowId);
+
+    if (isExpanded) {
+      setExpandedRowIds(activeExpandedRowIds.filter((expandedRowId) => expandedRowId !== rowId));
+      onRowCollapse?.(row);
+      return;
+    }
+
+    setExpandedRowIds([...activeExpandedRowIds, rowId]);
+    onRowExpand?.(row);
+
+    if (!loadChildren) {
+      return;
+    }
+
+    const node = findTreeListNode(treeNodes, rowId);
+
+    if (node && node.children.length > 0) {
+      return;
+    }
+
+    setLoadError(null);
+    setLoadingRowIds([...activeLoadingRowIds, rowId]);
+
+    try {
+      const children = await loadChildren(row);
+
+      setLoadedChildren((currentChildren) => {
+        const existingIds = new Set([...data, ...currentChildren].map((item, index) => getRowId(item, index)));
+        return [...currentChildren, ...children.filter((child, index) => !existingIds.has(getRowId(child, data.length + currentChildren.length + index)))];
+      });
+    } catch (error) {
+      setLoadError(error);
+      onError?.(error);
+    } finally {
+      setLoadingRowIds(activeLoadingRowIds.filter((loadingRowId) => loadingRowId !== rowId));
+    }
   }
 
   function toggleSelection(rowId: TreeListRowId) {
@@ -162,6 +215,7 @@ export function TreeList<T>({
         depth,
         hasChildren,
         isExpanded,
+        isLoading: activeLoadingRowIds.includes(getRowId(row, rowIndex)),
         row,
         rowIndex,
         value,
@@ -188,6 +242,11 @@ export function TreeList<T>({
             type="search"
             value={activeFilter.global}
           />
+        </div>
+      ) : null}
+      {loadError ? (
+        <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {errorMessage}
         </div>
       ) : null}
       <div className="overflow-auto">
@@ -217,7 +276,7 @@ export function TreeList<T>({
                     >
                       <span>{column.header}</span>
                       {activeSort?.columnId === getTreeListColumnId(column, columnIndex) ? (
-                        <span aria-hidden="true">{activeSort.direction === "asc" ? "?" : "?"}</span>
+                        <span aria-hidden="true">{activeSort.direction === "asc" ? "ASC" : "DESC"}</span>
                       ) : null}
                     </button>
                   )}
@@ -234,12 +293,12 @@ export function TreeList<T>({
                   : { checked: selectedRowIdSet.has(visibleRow.id), indeterminate: false };
 
                 return (
+                  <Fragment key={visibleRow.id}>
                   <tr
                     aria-expanded={visibleRow.hasChildren ? visibleRow.isExpanded : undefined}
                     aria-level={visibleRow.depth + 1}
                     aria-selected={isSelectionEnabled ? selectedRowIdSet.has(visibleRow.id) : undefined}
                     className="hover:bg-gray-50"
-                    key={visibleRow.id}
                   >
                     {isSelectionEnabled ? (
                       <td className="px-4 py-3 align-middle">
@@ -267,7 +326,7 @@ export function TreeList<T>({
                                   aria-label={`${visibleRow.isExpanded ? "Collapse" : "Expand"} row`}
                                   aria-expanded={visibleRow.isExpanded}
                                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                                  onClick={() => toggleRow(visibleRow.id)}
+                                  onClick={() => void toggleRow(visibleRow.id, visibleRow.row)}
                                   type="button"
                                 >
                                   {visibleRow.isExpanded ? "-" : "+"}
@@ -284,6 +343,16 @@ export function TreeList<T>({
                       );
                     })}
                   </tr>
+                  {visibleRow.isExpanded && visibleRow.isLoading ? (
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-gray-500" colSpan={columnSpan}>
+                        <div style={{ paddingLeft: (visibleRow.depth + 1) * TREE_INDENT_WIDTH }}>
+                          {renderLoadingRow ? renderLoadingRow(visibleRow.row) : "Loading rows..."}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                  </Fragment>
                 );
               })
             ) : (

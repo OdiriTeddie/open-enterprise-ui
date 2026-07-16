@@ -46,6 +46,14 @@ export function EmployeeTree({ employees }: { employees: Employee[] }) {
 | `columns` | `TreeListColumn<T>[]` | Column definitions. |
 | `data` | `T[]` | Flat row data. Parent/child relationships are derived with `getParentId`. |
 | `getRowId` | `(row: T, index: number) => string \| number` | Returns the stable row id. |
+| `isRowExpandable` | `(row: T) => boolean` | Marks rows as expandable even before children are present. Useful for server/lazy loading. |
+| `loadChildren` | `(row: T) => T[] \| Promise<T[]>` | Loads child rows when an expandable row is opened. Loaded rows are merged into the local tree. |
+| `loadingRowIds` | `TreeListRowId[]` | Controlled loading state for rows. If omitted, `TreeList` manages loading state for `loadChildren`. |
+| `renderLoadingRow` | `(row: T) => ReactNode` | Custom loading content shown below an expanded loading row. |
+| `onRowExpand` | `(row: T) => void` | Called when a row is expanded. |
+| `onRowCollapse` | `(row: T) => void` | Called when a row is collapsed. |
+| `onError` | `(error: unknown) => void` | Called when `loadChildren` rejects. |
+| `errorMessage` | `string` | Error text rendered when lazy loading fails. |
 | `getParentId` | `(row: T) => string \| number \| null \| undefined` | Returns the parent row id. Missing or unknown parents are treated as root rows. |
 | `defaultExpandedRowIds` | `TreeListRowId[]` | Initial expanded row ids for uncontrolled expansion. |
 | `defaultSort` | `TreeListSortState \| null` | Initial sort state for uncontrolled sorting. Sorting is applied to sibling rows. |
@@ -105,7 +113,25 @@ Phase 1 includes:
 - Optional cascading parent/child selection.
 - Sibling sorting with controlled and uncontrolled sort state.
 - Global filtering with hierarchy-aware filter modes.
+- Lazy child loading with row-level loading and error hooks.
 - Typed columns and custom cell rendering.
 - Empty state rendering.
 
-Lazy loading and virtualization are planned follow-up phases.
+Virtualization is planned as a follow-up phase.
+
+
+## Lazy Loading
+
+Use `isRowExpandable` when the server knows a row can have children before they are loaded. `loadChildren` runs the first time an expandable row without local children is opened.
+
+```tsx
+<TreeList
+  columns={columns}
+  data={departments}
+  getRowId={(department) => department.id}
+  getParentId={(department) => department.parentId}
+  isRowExpandable={(department) => department.hasChildren}
+  loadChildren={(department) => fetchDepartmentChildren(department.id)}
+  renderLoadingRow={(department) => <span>Loading {department.name}...</span>}
+/>
+```
