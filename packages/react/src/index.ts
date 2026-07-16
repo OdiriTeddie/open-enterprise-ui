@@ -67,6 +67,15 @@ export { Drawer, DrawerExample } from "./components/drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/drawer";
 export { Tabs, TabsExample } from "./components/tabs";
 export type { TabItem, TabsActivationMode, TabsOrientation, TabsProps, TabValue } from "./components/tabs";
+export { Navigation, NavigationExample } from "./components/navigation";
+export type {
+  NavigationEntry,
+  NavigationGroup,
+  NavigationItem,
+  NavigationOrientation,
+  NavigationProps,
+  NavigationValue,
+} from "./components/navigation";
 
 export { FileManager, FileManagerExample } from "./components/file-manager";
 export type {
