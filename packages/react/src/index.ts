@@ -60,6 +60,10 @@ export type {
   UseFormOptions,
   TextInputSize,
 } from "./components/form";
+
+export { Dialog, DialogExample } from "./components/dialog";
+export type { DialogProps, DialogSize } from "./components/dialog";
+
 export { FileManager, FileManagerExample } from "./components/file-manager";
 export type {
   FileManagerBreadcrumb,
