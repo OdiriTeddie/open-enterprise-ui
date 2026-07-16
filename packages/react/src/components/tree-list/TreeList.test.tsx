@@ -111,6 +111,82 @@ describe("TreeList", () => {
     expect(screen.getAllByText("1:true:false")).toHaveLength(1);
   });
 
+
+  it("supports single row selection", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({ defaultExpandedRowIds: ["ceo"], selectionMode: "single" });
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row ceo" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select row eng" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBeChecked();
+  });
+
+  it("supports multiple row selection", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({ defaultExpandedRowIds: ["ceo"], selectionMode: "multiple" });
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row ceo" }));
+    await user.click(screen.getByRole("checkbox", { name: "Select row eng" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBeChecked();
+  });
+
+  it("supports controlled row selection", async () => {
+    const user = userEvent.setup();
+    const onSelectedRowIdsChange = vi.fn();
+
+    renderTreeList({
+      defaultExpandedRowIds: ["ceo"],
+      onSelectedRowIdsChange,
+      selectedRowIds: ["ceo"],
+      selectionMode: "multiple",
+    });
+
+    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBeChecked();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row eng" }));
+
+    expect(onSelectedRowIdsChange).toHaveBeenCalledWith(["ceo", "eng"]);
+    expect(screen.getByRole("checkbox", { name: "Select row eng" })).not.toBeChecked();
+  });
+
+  it("cascades parent selection to descendants", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({
+      defaultExpandedRowIds: ["ceo", "eng"],
+      enableCascadeSelection: true,
+      selectionMode: "multiple",
+    });
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row ceo" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row platform" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row ops" })).toBeChecked();
+  });
+
+  it("shows indeterminate parent state for partial cascade selection", async () => {
+    const user = userEvent.setup();
+
+    renderTreeList({
+      defaultExpandedRowIds: ["ceo", "eng"],
+      enableCascadeSelection: true,
+      selectionMode: "multiple",
+    });
+
+    await user.click(screen.getByRole("checkbox", { name: "Select row platform" }));
+
+    expect(screen.getByRole("checkbox", { name: "Select row ceo" })).toBePartiallyChecked();
+    expect(screen.getByRole("checkbox", { name: "Select row eng" })).toBePartiallyChecked();
+  });
+
   it("renders an empty state", () => {
     renderTreeList({ data: [], renderEmpty: () => <span>No hierarchy yet.</span> });
 

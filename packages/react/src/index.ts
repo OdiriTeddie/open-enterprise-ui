@@ -85,6 +85,7 @@ export type {
   TreeListNode,
   TreeListProps,
   TreeListRowId,
+  TreeListSelectionMode,
   TreeListVisibleRow,
 } from "./components/tree-list";
 

@@ -45,5 +45,6 @@ export type {
   TreeListNode,
   TreeListProps,
   TreeListRowId,
+  TreeListSelectionMode,
   TreeListVisibleRow,
 } from "./types";

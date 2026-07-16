@@ -113,6 +113,42 @@ export function flattenVisibleTreeListRows<T>(
   return rows;
 }
 
+export function getTreeListNodeDescendantIds<T>(node: TreeListNode<T>): TreeListRowId[] {
+  return node.children.flatMap((child) => [child.id, ...getTreeListNodeDescendantIds(child)]);
+}
+
+export function getTreeListNodeIds<T>(nodes: TreeListNode<T>[]): TreeListRowId[] {
+  return nodes.flatMap((node) => [node.id, ...getTreeListNodeDescendantIds(node)]);
+}
+
+export function findTreeListNode<T>(nodes: TreeListNode<T>[], rowId: TreeListRowId): TreeListNode<T> | undefined {
+  for (const node of nodes) {
+    if (node.id === rowId) {
+      return node;
+    }
+
+    const childNode = findTreeListNode(node.children, rowId);
+
+    if (childNode) {
+      return childNode;
+    }
+  }
+
+  return undefined;
+}
+
+export function getTreeListSelectionState<T>(node: TreeListNode<T>, selectedRowIds: TreeListRowId[]) {
+  const selectedSet = new Set(selectedRowIds);
+  const descendantIds = getTreeListNodeDescendantIds(node);
+  const selectableIds = [node.id, ...descendantIds];
+  const selectedCount = selectableIds.filter((id) => selectedSet.has(id)).length;
+
+  return {
+    checked: selectedSet.has(node.id) && (descendantIds.length === 0 || selectedCount === selectableIds.length),
+    indeterminate: selectedCount > 0 && selectedCount < selectableIds.length,
+  };
+}
+
 function assignDepth<T>(node: TreeListNode<T>, depth: number) {
   node.depth = depth;
   node.children.forEach((child) => assignDepth(child, depth + 1));

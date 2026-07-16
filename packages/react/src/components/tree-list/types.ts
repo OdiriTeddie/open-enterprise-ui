@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 export type TreeListRowId = string | number;
 export type TreeListColumnAlign = "left" | "center" | "right";
+export type TreeListSelectionMode = "none" | "single" | "multiple";
 
 export type TreeListCellContext<T, TValue = unknown> = {
   column: TreeListColumn<T, TValue>;
@@ -47,10 +48,15 @@ export type TreeListProps<T> = {
   columns: TreeListColumn<T>[];
   data: T[];
   defaultExpandedRowIds?: TreeListRowId[];
+  defaultSelectedRowIds?: TreeListRowId[];
   emptyMessage?: string;
+  enableCascadeSelection?: boolean;
   expandedRowIds?: TreeListRowId[];
   getParentId?: (row: T) => TreeListRowId | null | undefined;
   getRowId: (row: T, index: number) => TreeListRowId;
   onExpandedRowIdsChange?: (expandedRowIds: TreeListRowId[]) => void;
+  onSelectedRowIdsChange?: (selectedRowIds: TreeListRowId[]) => void;
   renderEmpty?: () => ReactNode;
+  selectedRowIds?: TreeListRowId[];
+  selectionMode?: TreeListSelectionMode;
 };

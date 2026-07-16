@@ -30,6 +30,8 @@ export function EmployeeTree({ employees }: { employees: Employee[] }) {
       columns={columns}
       data={employees}
       defaultExpandedRowIds={["ceo"]}
+      selectionMode="multiple"
+      enableCascadeSelection
       getParentId={(employee) => employee.managerId}
       getRowId={(employee) => employee.id}
     />
@@ -46,6 +48,11 @@ export function EmployeeTree({ employees }: { employees: Employee[] }) {
 | `getRowId` | `(row: T, index: number) => string \| number` | Returns the stable row id. |
 | `getParentId` | `(row: T) => string \| number \| null \| undefined` | Returns the parent row id. Missing or unknown parents are treated as root rows. |
 | `defaultExpandedRowIds` | `TreeListRowId[]` | Initial expanded row ids for uncontrolled expansion. |
+| `selectionMode` | `"none" \| "single" \| "multiple"` | Enables row selection. Defaults to `"none"`. |
+| `defaultSelectedRowIds` | `TreeListRowId[]` | Initial selected row ids for uncontrolled selection. |
+| `selectedRowIds` | `TreeListRowId[]` | Controlled selected row ids. |
+| `onSelectedRowIdsChange` | `(ids: TreeListRowId[]) => void` | Called when row selection changes. |
+| `enableCascadeSelection` | `boolean` | When `true`, selecting a parent in multiple selection mode also selects descendants and shows indeterminate parent state. |
 | `expandedRowIds` | `TreeListRowId[]` | Controlled expanded row ids. |
 | `onExpandedRowIdsChange` | `(ids: TreeListRowId[]) => void` | Called when a row is expanded or collapsed. |
 | `emptyMessage` | `string` | Empty state text. |
@@ -81,7 +88,9 @@ Phase 1 includes:
 - Flat data to hierarchical rows.
 - Expand/collapse controls.
 - Controlled and uncontrolled expanded state.
+- Single and multiple row selection.
+- Optional cascading parent/child selection.
 - Typed columns and custom cell rendering.
 - Empty state rendering.
 
-Sorting, filtering, selection, lazy loading, and virtualization are planned follow-up phases.
+Sorting, filtering, lazy loading, and virtualization are planned follow-up phases.
