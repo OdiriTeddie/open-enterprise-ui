@@ -2,7 +2,7 @@
 
 React components for Open Enterprise UI.
 
-This package is early-stage and currently includes a typed `DataGrid`, form primitives, and a `FileManager` for enterprise workflows.
+This package is early-stage and currently includes a typed `DataGrid`, `TreeList`, form primitives, and a `FileManager` for enterprise workflows.
 
 ## Installation
 
@@ -47,12 +47,14 @@ export function UsersTable({ users }: { users: User[] }) {
 ## Components
 
 - DataGrid
+- TreeList
 - Field
 - Input
 - Textarea
 - Select
 - Checkbox
-- FormBuilder`r`n- FileManager
+- FormBuilder
+- FileManager
 
 ## DataGrid Features
 
@@ -72,8 +74,10 @@ export function UsersTable({ users }: { users: User[] }) {
 ## Documentation
 
 - [DataGrid API](../../docs/data-grid.md)
+- [TreeList API](../../docs/tree-list.md)
 - [Server-side DataGrid mode](../../docs/data-grid.md#server-side-mode)
-- [Form primitives](../../docs/form.md)`r`n- [File Manager API](../../docs/file-manager.md)
+- [Form primitives](../../docs/form.md)
+- [File Manager API](../../docs/file-manager.md)
 
 ## Development
 

@@ -8,6 +8,7 @@ import { FileManagerExample } from "./components/file-manager";
 import { FormExample } from "./components/form";
 import { NavigationExample } from "./components/navigation";
 import { TabsExample } from "./components/tabs";
+import { TreeListExample } from "./components/tree-list";
 
 function App() {
   return (
@@ -52,6 +53,13 @@ function App() {
           File Manager
         </h1>
         <FileManagerExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          TreeList
+        </h1>
+        <TreeListExample />
       </section>
 
       <section>

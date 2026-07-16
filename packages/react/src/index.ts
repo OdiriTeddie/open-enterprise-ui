@@ -77,6 +77,17 @@ export type {
   NavigationValue,
 } from "./components/navigation";
 
+export { TreeList, TreeListExample } from "./components/tree-list";
+export type {
+  TreeListCellContext,
+  TreeListColumn,
+  TreeListColumnAlign,
+  TreeListNode,
+  TreeListProps,
+  TreeListRowId,
+  TreeListVisibleRow,
+} from "./components/tree-list";
+
 export { FileManager, FileManagerExample } from "./components/file-manager";
 export type {
   FileManagerBreadcrumb,
