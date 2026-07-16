@@ -2,13 +2,13 @@
 
 Open-source UI components for teams building internal tools, admin panels, dashboards, and data-heavy products.
 
-The project currently ships a React package with enterprise-focused `DataGrid`, form primitives/Form Builder, `FileManager`, and `Dialog` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
+The project currently ships a React package with enterprise-focused `DataGrid`, form primitives/Form Builder, `FileManager`, `Dialog`, and `Drawer` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
 
 ## Packages
 
 | Package | Status | Description |
 | --- | --- | --- |
-| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, forms, `FileManager`, and `Dialog`. |
+| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, forms, `FileManager`, `Dialog`, and `Drawer`. |
 | `@open-enterprise-ui/vue` | Planned | Vue components. |
 
 ## Goals
@@ -34,6 +34,7 @@ React is a peer dependency, so your app should already provide `react` and `reac
 - `Form` / `FormBuilder`: accessible form layout, schema-driven forms, validation, async options, dirty state, and server error mapping.
 - `FileManager`: provider-backed folder browsing, context menus, rename/move/copy/upload flows, details panel, permissions, keyboard accessibility, and virtualization.
 - `Dialog`: controlled modal surface with accessible labelling, focus management, Escape/backdrop close, and action slots.
+- `Drawer`: controlled edge panel for contextual workflows, details views, filters, and secondary forms.
 
 ## Usage
 
@@ -85,6 +86,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - [Form API](./docs/form.md)
 - [File Manager API](./docs/file-manager.md)
 - [Dialog API](./docs/dialog.md)
+- [Drawer API](./docs/drawer.md)
 
 ## Repository Structure
 

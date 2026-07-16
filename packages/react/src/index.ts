@@ -63,6 +63,8 @@ export type {
 
 export { Dialog, DialogExample } from "./components/dialog";
 export type { DialogProps, DialogSize } from "./components/dialog";
+export { Drawer, DrawerExample } from "./components/drawer";
+export type { DrawerProps, DrawerSide, DrawerSize } from "./components/drawer";
 
 export { FileManager, FileManagerExample } from "./components/file-manager";
 export type {

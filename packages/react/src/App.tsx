@@ -3,6 +3,7 @@
   ServerSideDataGridExample,
 } from "./components/data-grid";
 import { DialogExample } from "./components/dialog";
+import { DrawerExample } from "./components/drawer";
 import { FileManagerExample } from "./components/file-manager";
 import { FormExample } from "./components/form";
 
@@ -14,6 +15,13 @@ function App() {
           Dialog
         </h1>
         <DialogExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          Drawer
+        </h1>
+        <DrawerExample />
       </section>
 
       <section>
