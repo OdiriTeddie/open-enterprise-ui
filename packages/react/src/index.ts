@@ -65,6 +65,8 @@ export { Dialog, DialogExample } from "./components/dialog";
 export type { DialogProps, DialogSize } from "./components/dialog";
 export { Drawer, DrawerExample } from "./components/drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/drawer";
+export { Tabs, TabsExample } from "./components/tabs";
+export type { TabItem, TabsActivationMode, TabsOrientation, TabsProps, TabValue } from "./components/tabs";
 
 export { FileManager, FileManagerExample } from "./components/file-manager";
 export type {
