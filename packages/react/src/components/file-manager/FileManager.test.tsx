@@ -278,6 +278,22 @@ describe("FileManager", () => {
     expect(onRename).not.toHaveBeenCalled();
   });
 
+  it("closes the rename dialog without renaming", async () => {
+    const user = userEvent.setup();
+    const onRename = vi.fn();
+
+    render(<FileManager items={items} onRename={onRename} />);
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Rename Report.pdf" });
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Rename Report.pdf" })).not.toBeInTheDocument();
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
   it("uses provider rename and refreshes the folder", async () => {
     const user = userEvent.setup();
     const renameItem = vi.fn().mockResolvedValue(undefined);
@@ -314,10 +330,15 @@ describe("FileManager", () => {
 
     await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
     await user.click(screen.getByRole("menuitem", { name: "Copy" }));
-    await user.selectOptions(screen.getByLabelText("Destination"), "archive");
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Copy Report.pdf" });
+    expect(dialog).toHaveTextContent("Choose a destination for Report.pdf.");
+
+    await user.selectOptions(within(dialog).getByLabelText("Destination"), "archive");
+    await user.click(within(dialog).getByRole("button", { name: "Copy" }));
 
     expect(onCopy).toHaveBeenCalledWith([items[1]], "archive");
+    expect(screen.queryByRole("dialog", { name: "Copy Report.pdf" })).not.toBeInTheDocument();
   });
 
   it("validates move destination", async () => {
@@ -334,9 +355,31 @@ describe("FileManager", () => {
 
     await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
     await user.click(screen.getByRole("menuitem", { name: "Move" }));
-    await user.click(screen.getByRole("button", { name: "Move" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Move Report.pdf" });
+    await user.click(within(dialog).getByRole("button", { name: "Move" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("Choose a destination folder.");
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("closes the move dialog without moving", async () => {
+    const user = userEvent.setup();
+    const onMove = vi.fn();
+
+    render(
+      <FileManager
+        destinationFolders={[{ id: "archive", label: "Archive" }]}
+        items={items}
+        onMove={onMove}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open actions for Report.pdf" }));
+    await user.click(screen.getByRole("menuitem", { name: "Move" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: "Move Report.pdf" })).not.toBeInTheDocument();
     expect(onMove).not.toHaveBeenCalled();
   });
 
@@ -367,13 +410,18 @@ describe("FileManager", () => {
     render(<FileManager items={items} onUpload={onUpload} />);
 
     await user.click(screen.getByRole("button", { name: "Upload" }));
-    await user.upload(screen.getByLabelText(/select files/i), file);
+
+    const dialog = screen.getByRole("dialog", { name: "Upload files" });
+    expect(dialog).toHaveTextContent("Choose one or more files to upload to this folder.");
+
+    await user.upload(within(dialog).getByLabelText(/select files/i), file);
 
     expect(screen.getByText("report.pdf")).toBeInTheDocument();
 
-    await user.click(within(screen.getByRole("dialog", { name: "Upload files" })).getByRole("button", { name: "Upload" }));
+    await user.click(within(dialog).getByRole("button", { name: "Upload" }));
 
     expect(onUpload).toHaveBeenCalledWith([file]);
+    expect(screen.queryByRole("dialog", { name: "Upload files" })).not.toBeInTheDocument();
   });
 
   it("validates upload file selection", async () => {
@@ -387,6 +435,25 @@ describe("FileManager", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Choose at least one file.");
     expect(onUpload).not.toHaveBeenCalled();
+  });
+
+  it("closes the upload dialog without uploading", async () => {
+    const user = userEvent.setup();
+    const onUpload = vi.fn();
+    const file = new File(["report"], "report.pdf", { type: "application/pdf" });
+
+    render(<FileManager items={items} onUpload={onUpload} />);
+
+    await user.click(screen.getByRole("button", { name: "Upload" }));
+    await user.upload(screen.getByLabelText(/select files/i), file);
+    await user.click(within(screen.getByRole("dialog", { name: "Upload files" })).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog", { name: "Upload files" })).not.toBeInTheDocument();
+    expect(onUpload).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Upload" }));
+
+    expect(screen.queryByText("report.pdf")).not.toBeInTheDocument();
   });
 
   it("uses provider upload and refreshes the folder", async () => {
@@ -516,6 +583,7 @@ describe("FileManager", () => {
     expect(within(dialog).getByText("2.0 KB")).toBeInTheDocument();
     expect(onDetailsOpen).toHaveBeenCalledWith(items[1]);
 
+    dialog.focus();
     await user.keyboard("{Escape}");
 
     expect(screen.queryByRole("dialog", { name: "Details for Report.pdf" })).not.toBeInTheDocument();
@@ -624,8 +692,10 @@ describe("FileManager", () => {
     expect(within(menu).getByRole("menuitem", { name: "Details" })).toHaveFocus();
 
     await user.keyboard("{Enter}");
-    expect(screen.getByRole("dialog", { name: "Details for Report.pdf" })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Details for Report.pdf" });
+    expect(dialog).toBeInTheDocument();
 
+    dialog.focus();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: "Details for Report.pdf" })).not.toBeInTheDocument();
   });
