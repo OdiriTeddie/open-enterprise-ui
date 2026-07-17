@@ -9,7 +9,11 @@ import { FormExample } from "./components/form";
 import { NavigationExample } from "./components/navigation";
 import { TabsExample } from "./components/tabs";
 import { TreeListExample } from "./components/tree-list";
-import { ToolbarExample } from "./components/toolbar";
+import {
+  ToolbarDataGridIntegrationExample,
+  ToolbarExample,
+  ToolbarFileManagerIntegrationExample,
+} from "./components/toolbar";
 
 function App() {
   return (
@@ -40,6 +44,20 @@ function App() {
           Toolbar
         </h1>
         <ToolbarExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          Toolbar + DataGrid
+        </h1>
+        <ToolbarDataGridIntegrationExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          Toolbar + FileManager
+        </h1>
+        <ToolbarFileManagerIntegrationExample />
       </section>
 
       <section>

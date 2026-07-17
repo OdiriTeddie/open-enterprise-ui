@@ -67,7 +67,12 @@ export { Drawer, DrawerExample } from "./components/drawer";
 export type { DrawerProps, DrawerSide, DrawerSize } from "./components/drawer";
 export { Tabs, TabsExample } from "./components/tabs";
 export type { TabItem, TabsActivationMode, TabsOrientation, TabsProps, TabValue } from "./components/tabs";
-export { Toolbar, ToolbarExample } from "./components/toolbar";
+export {
+  Toolbar,
+  ToolbarDataGridIntegrationExample,
+  ToolbarExample,
+  ToolbarFileManagerIntegrationExample,
+} from "./components/toolbar";
 export type {
   ToolbarActionItem,
   ToolbarItem,

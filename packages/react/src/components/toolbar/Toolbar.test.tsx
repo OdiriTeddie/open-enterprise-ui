@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "./Toolbar";
+import { ToolbarDataGridIntegrationExample, ToolbarFileManagerIntegrationExample } from "./ToolbarIntegrations";
 import type { ToolbarItem } from "./types";
 
 const items: ToolbarItem[] = [
@@ -28,6 +29,23 @@ describe("Toolbar", () => {
     expect(screen.getByRole("separator")).toBeInTheDocument();
     expect(screen.getByText("Files")).toBeInTheDocument();
     expect(screen.getByText("3 selected")).toBeInTheDocument();
+  });
+
+
+  it("renders the DataGrid integration example", () => {
+    render(<ToolbarDataGridIntegrationExample />);
+
+    expect(screen.getByRole("toolbar", { name: "Account grid commands" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Accounts table" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Search accounts" })).toBeInTheDocument();
+  });
+
+  it("renders the FileManager integration example", () => {
+    render(<ToolbarFileManagerIntegrationExample />);
+
+    expect(screen.getByRole("toolbar", { name: "File manager commands" })).toBeInTheDocument();
+    expect(screen.getAllByRole("searchbox", { name: "Search files" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Master service agreement.pdf")).toBeInTheDocument();
   });
 
   it("renders composed children as custom controls", async () => {

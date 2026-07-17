@@ -120,6 +120,104 @@ Keyboard behavior:
 `overflow="wrap"` allows commands to wrap onto additional lines. `overflow="scroll"` keeps commands in a single row or column and enables scrolling. Measured overflow into an automatic ?More? menu is planned as a follow-up phase.
 
 
+
+## Integration Examples
+
+### DataGrid Command Bar
+
+Use `Toolbar` above `DataGrid` when page-level commands need to coordinate with grid state. Keep the grid state in the consuming app and pass it to both components.
+
+```tsx
+function AccountsGrid() {
+  const [filter, setFilter] = useState<FilterState>({ global: "" });
+  const [selectedRowIds, setSelectedRowIds] = useState<RowId[]>([]);
+
+  const items: ToolbarItem[] = [
+    { id: "export", label: "Export", variant: "primary", onSelect: exportRows },
+    { id: "assign", label: "Assign", disabled: selectedRowIds.length === 0 },
+    { id: "separator", type: "separator" },
+    { id: "risk", label: "At risk", pressed: filter.global === "At risk", onSelect: () => setFilter({ global: "At risk" }) },
+    { id: "clear", label: "Clear", variant: "subtle", onSelect: () => setFilter({ global: "" }) },
+  ];
+
+  return (
+    <>
+      <Toolbar
+        ariaLabel="Account grid commands"
+        items={items}
+        trailing={<span>{selectedRowIds.length} selected</span>}
+      >
+        <input
+          aria-label="Search accounts"
+          onChange={(event) => setFilter({ global: event.target.value })}
+          type="search"
+          value={filter.global}
+        />
+      </Toolbar>
+
+      <DataGrid
+        columns={columns}
+        data={accounts}
+        enableRowSelection
+        filter={filter}
+        onFilterChange={setFilter}
+        onRowSelectionChange={setSelectedRowIds}
+        selectedRowIds={selectedRowIds}
+        showGlobalFilter={false}
+      />
+    </>
+  );
+}
+```
+
+### FileManager Command Bar
+
+Use a Toolbar when file commands should sit outside the FileManager chrome or match the rest of an application shell.
+
+```tsx
+function FilesWorkspace() {
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedIds, setSelectedIds] = useState<FileManagerItemId[]>([]);
+  const [viewMode, setViewMode] = useState<FileManagerViewMode>("list");
+
+  const items: ToolbarItem[] = [
+    { id: "upload", label: "Upload", variant: "primary", onSelect: openUploadDialog },
+    { id: "folder", label: "New folder", onSelect: createFolder },
+    { id: "separator", type: "separator" },
+    { id: "list", label: "List", pressed: viewMode === "list", onSelect: () => setViewMode("list") },
+    { id: "grid", label: "Grid", pressed: viewMode === "grid", onSelect: () => setViewMode("grid") },
+    { id: "download", label: "Download", disabled: selectedIds.length === 0 },
+  ];
+
+  return (
+    <>
+      <Toolbar
+        ariaLabel="File manager commands"
+        items={items}
+        trailing={<span>{selectedIds.length} selected</span>}
+      >
+        <input
+          aria-label="Search files"
+          onChange={(event) => setSearchValue(event.target.value)}
+          type="search"
+          value={searchValue}
+        />
+      </Toolbar>
+
+      <FileManager
+        items={files}
+        onSearchChange={setSearchValue}
+        onSelectionChange={({ selectedIds }) => setSelectedIds(selectedIds)}
+        onViewModeChange={setViewMode}
+        searchValue={searchValue}
+        selectedIds={selectedIds}
+        viewMode={viewMode}
+      />
+    </>
+  );
+}
+```
+
 ## Overflow
 
 ```tsx

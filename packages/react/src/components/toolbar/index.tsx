@@ -40,6 +40,7 @@ export function ToolbarExample() {
 }
 
 export { Toolbar } from "./Toolbar";
+export { ToolbarDataGridIntegrationExample, ToolbarFileManagerIntegrationExample } from "./ToolbarIntegrations";
 export type {
   ToolbarActionItem,
   ToolbarItem,
