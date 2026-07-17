@@ -44,6 +44,7 @@ function isFocusableItem(item: ToolbarItem): item is ToolbarActionItem | Toolbar
 
 export function Toolbar({
   ariaLabel = "Toolbar",
+  children,
   className = "",
   items,
   leading,
@@ -55,6 +56,9 @@ export function Toolbar({
 }: ToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const isVertical = orientation === "vertical";
+  const compositionSlotClassName = isVertical
+    ? "mt-1 flex min-w-0 flex-col gap-1"
+    : "ml-1 flex min-w-0 items-center gap-2";
   const enabledActionItems = useMemo(() => items.filter((item): item is ToolbarActionItem | ToolbarMenuItem => isFocusableItem(item) && !item.disabled), [items]);
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -328,7 +332,11 @@ export function Toolbar({
         );
       })}
 
+      {children ? <div className={compositionSlotClassName}>{children}</div> : null}
+
       {trailing ? <div className={isVertical ? "mt-1" : "ml-auto"}>{trailing}</div> : null}
     </div>
   );
 }
+
+

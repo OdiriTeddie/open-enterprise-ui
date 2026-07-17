@@ -45,6 +45,7 @@ export type ToolbarItem = ToolbarActionItem | ToolbarMenuItem | ToolbarSeparator
 
 export type ToolbarProps = {
   ariaLabel?: string;
+  children?: ReactNode;
   className?: string;
   items: ToolbarItem[];
   leading?: ReactNode;
@@ -54,3 +55,4 @@ export type ToolbarProps = {
   size?: ToolbarSize;
   trailing?: ReactNode;
 };
+

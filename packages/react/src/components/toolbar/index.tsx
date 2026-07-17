@@ -28,7 +28,14 @@ export function ToolbarExample() {
       overflowLabel="File commands scroll horizontally when space is limited"
       leading={<span className="px-2 text-sm font-medium text-gray-700">Files</span>}
       trailing={<span className="px-2 text-xs text-gray-500">6 selected</span>}
-    />
+    >
+      <input
+        aria-label="Search files"
+        className="min-h-9 w-40 rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+        placeholder="Search files"
+        type="search"
+      />
+    </Toolbar>
   );
 }
 
@@ -45,3 +52,4 @@ export type {
   ToolbarSeparatorItem,
   ToolbarSize,
 } from "./types";
+

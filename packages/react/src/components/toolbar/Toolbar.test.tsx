@@ -30,6 +30,25 @@ describe("Toolbar", () => {
     expect(screen.getByText("3 selected")).toBeInTheDocument();
   });
 
+  it("renders composed children as custom controls", async () => {
+    const user = userEvent.setup();
+    const onCustomSelect = vi.fn();
+
+    render(
+      <Toolbar items={[{ id: "refresh", label: "Refresh" }]} trailing={<span>Ready</span>}>
+        <input aria-label="Search commands" />
+        <button type="button" onClick={onCustomSelect}>Custom control</button>
+      </Toolbar>,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Search commands" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Custom control" }));
+
+    expect(onCustomSelect).toHaveBeenCalledTimes(1);
+  });
+
   it("calls action handlers", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
@@ -276,3 +295,4 @@ describe("Toolbar", () => {
   });
 
 });
+

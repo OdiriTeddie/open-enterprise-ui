@@ -43,6 +43,7 @@ const items: ToolbarItem[] = [
 | `size` | `"sm" \| "md"` | Button density. Defaults to `"md"`. |
 | `leading` | `ReactNode` | Optional content before toolbar items. |
 | `trailing` | `ReactNode` | Optional content after toolbar items. |
+| `children` | `ReactNode` | Optional composed controls rendered between toolbar items and trailing content. |
 | `className` | `string` | Additional class names for the root toolbar. |
 
 ## Items
@@ -85,6 +86,20 @@ type ToolbarSeparatorItem = {
 };
 ```
 
+## Composition
+
+Use `children` when the command bar needs custom controls that are not toolbar actions, such as search inputs, filter chips, status controls, or density switches.
+
+```tsx
+<Toolbar
+  ariaLabel="File commands"
+  items={items}
+  leading={<span>Files</span>}
+  trailing={<span>6 selected</span>}
+>
+  <input aria-label="Search files" type="search" />
+</Toolbar>
+```
 ## Accessibility
 
 `Toolbar` renders `role="toolbar"` with `aria-orientation`. Separators render `role="separator"`. Pressed action items expose `aria-pressed`.
@@ -115,3 +130,4 @@ Keyboard behavior:
   overflowLabel="Grid commands scroll horizontally when space is limited"
 />
 ```
+
