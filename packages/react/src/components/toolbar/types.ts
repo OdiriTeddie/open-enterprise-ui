@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 export type ToolbarOrientation = "horizontal" | "vertical";
 export type ToolbarSize = "sm" | "md";
+export type ToolbarOverflow = "wrap" | "scroll";
 export type ToolbarItemVariant = "default" | "primary" | "danger" | "subtle";
 
 export type ToolbarActionItem = {
@@ -48,6 +49,8 @@ export type ToolbarProps = {
   items: ToolbarItem[];
   leading?: ReactNode;
   orientation?: ToolbarOrientation;
+  overflow?: ToolbarOverflow;
+  overflowLabel?: string;
   size?: ToolbarSize;
   trailing?: ReactNode;
 };

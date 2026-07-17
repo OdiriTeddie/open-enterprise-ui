@@ -24,6 +24,8 @@ export function ToolbarExample() {
     <Toolbar
       ariaLabel="File commands"
       items={toolbarItems}
+      overflow="scroll"
+      overflowLabel="File commands scroll horizontally when space is limited"
       leading={<span className="px-2 text-sm font-medium text-gray-700">Files</span>}
       trailing={<span className="px-2 text-xs text-gray-500">6 selected</span>}
     />
@@ -38,6 +40,7 @@ export type {
   ToolbarMenuOption,
   ToolbarMenuItem,
   ToolbarOrientation,
+  ToolbarOverflow,
   ToolbarProps,
   ToolbarSeparatorItem,
   ToolbarSize,

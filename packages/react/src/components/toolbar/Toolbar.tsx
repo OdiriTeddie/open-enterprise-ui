@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import type { ToolbarActionItem, ToolbarItem, ToolbarMenuItem, ToolbarMenuOption, ToolbarProps } from "./types";
+import type { ToolbarActionItem, ToolbarItem, ToolbarMenuItem, ToolbarMenuOption, ToolbarOrientation, ToolbarOverflow, ToolbarProps } from "./types";
 
-const orientationClasses = {
-  horizontal: "flex-row flex-wrap items-center",
-  vertical: "flex-col items-stretch",
+const overflowClasses: Record<ToolbarOrientation, Record<ToolbarOverflow, string>> = {
+  horizontal: {
+    scroll: "flex-row flex-nowrap items-center overflow-x-auto",
+    wrap: "flex-row flex-wrap items-center",
+  },
+  vertical: {
+    scroll: "max-h-full flex-col flex-nowrap items-stretch overflow-y-auto",
+    wrap: "flex-col items-stretch",
+  },
 };
 
 const sizeClasses = {
@@ -42,6 +48,8 @@ export function Toolbar({
   items,
   leading,
   orientation = "horizontal",
+  overflow = "wrap",
+  overflowLabel,
   size = "md",
   trailing,
 }: ToolbarProps) {
@@ -292,8 +300,9 @@ export function Toolbar({
   return (
     <div
       aria-label={ariaLabel}
+      aria-description={overflow === "scroll" ? overflowLabel : undefined}
       aria-orientation={orientation}
-      className={`flex rounded-md border border-gray-200 bg-white ${orientationClasses[orientation]} ${sizeClasses[size]} ${className}`}
+      className={`flex rounded-md border border-gray-200 bg-white ${overflowClasses[orientation][overflow]} ${sizeClasses[size]} ${className}`}
       ref={toolbarRef}
       role="toolbar"
     >

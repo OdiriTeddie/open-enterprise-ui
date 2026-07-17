@@ -126,6 +126,27 @@ describe("Toolbar", () => {
   });
 
 
+
+  it("uses wrapping overflow by default", () => {
+    render(<Toolbar items={items} />);
+
+    expect(screen.getByRole("toolbar")).toHaveClass("flex-wrap");
+  });
+
+  it("supports horizontal scroll overflow", () => {
+    render(<Toolbar items={items} overflow="scroll" overflowLabel="More commands may be available horizontally" />);
+
+    expect(screen.getByRole("toolbar")).toHaveClass("flex-nowrap");
+    expect(screen.getByRole("toolbar")).toHaveClass("overflow-x-auto");
+    expect(screen.getByRole("toolbar")).toHaveAttribute("aria-description", "More commands may be available horizontally");
+  });
+
+  it("supports vertical scroll overflow", () => {
+    render(<Toolbar items={items} orientation="vertical" overflow="scroll" />);
+
+    expect(screen.getByRole("toolbar")).toHaveClass("overflow-y-auto");
+  });
+
   it("opens a menu item and selects an option", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();

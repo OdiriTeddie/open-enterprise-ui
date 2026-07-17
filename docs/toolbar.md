@@ -38,6 +38,8 @@ const items: ToolbarItem[] = [
 | `items` | `ToolbarItem[]` | Action and separator items. |
 | `ariaLabel` | `string` | Accessible toolbar label. Defaults to `"Toolbar"`. |
 | `orientation` | `"horizontal" \| "vertical"` | Toolbar orientation. Defaults to `"horizontal"`. |
+| `overflow` | `"wrap" \| "scroll"` | Controls item overflow. Defaults to `"wrap"`. |
+| `overflowLabel` | `string` | Optional description exposed when scroll overflow is enabled. |
 | `size` | `"sm" \| "md"` | Button density. Defaults to `"md"`. |
 | `leading` | `ReactNode` | Optional content before toolbar items. |
 | `trailing` | `ReactNode` | Optional content after toolbar items. |
@@ -100,4 +102,16 @@ Keyboard behavior:
 - Disabled actions, disabled menu options, and separators are skipped.
 - Outside clicks close open menus.
 
-Overflow handling is planned as a follow-up phase.
+`overflow="wrap"` allows commands to wrap onto additional lines. `overflow="scroll"` keeps commands in a single row or column and enables scrolling. Measured overflow into an automatic ?More? menu is planned as a follow-up phase.
+
+
+## Overflow
+
+```tsx
+<Toolbar
+  ariaLabel="Grid commands"
+  items={items}
+  overflow="scroll"
+  overflowLabel="Grid commands scroll horizontally when space is limited"
+/>
+```
