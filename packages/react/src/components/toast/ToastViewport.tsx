@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import type { Toast, ToastAction, ToastPosition, ToastViewportProps, ToastVariant } from "./types";
 import { useToast } from "./useToast";
 
@@ -47,6 +48,8 @@ export function ToastViewport({ className = "", position = "top-right" }: ToastV
 }
 
 function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toast: Toast }) {
+  const titleId = useId();
+  const descriptionId = useId();
   const [isPaused, setIsPaused] = useState(false);
   const remainingDurationRef = useRef<number | null>(toast.duration ?? null);
   const startedAtRef = useRef<number | null>(null);
@@ -97,12 +100,23 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
     onDismiss(toast.id);
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onDismiss(toast.id);
+    }
+  }
+
   return (
     <div
+      aria-describedby={toast.description ? descriptionId : undefined}
+      aria-label={toast.ariaLabel}
+      aria-labelledby={toast.ariaLabel ? undefined : titleId}
       aria-live={isAssertive ? "assertive" : "polite"}
-      className={`rounded-md border p-4 shadow-lg ${variantClasses[toast.variant]}`}
+      className={`rounded-md border p-4 shadow-lg transition motion-reduce:transition-none ${variantClasses[toast.variant]}`}
       onBlur={handleResume}
       onFocus={handlePause}
+      onKeyDown={handleKeyDown}
       onMouseEnter={handlePause}
       onMouseLeave={handleResume}
       role={isAssertive ? "alert" : "status"}
@@ -110,8 +124,8 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <p className="text-xs font-semibold uppercase text-current opacity-75">{variantLabels[toast.variant]}</p>
-          <div className="mt-1 text-sm font-semibold">{toast.title}</div>
-          {toast.description ? <div className="mt-1 text-sm opacity-85">{toast.description}</div> : null}
+          <div className="mt-1 text-sm font-semibold" id={titleId}>{toast.title}</div>
+          {toast.description ? <div className="mt-1 text-sm opacity-85" id={descriptionId}>{toast.description}</div> : null}
           {hasActions ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {toast.primaryAction ? <ToastActionButton action={toast.primaryAction} onSelect={handleActionSelect} priority="primary" /> : null}
@@ -120,12 +134,12 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
           ) : null}
         </div>
         <button
-          aria-label="Dismiss notification"
+          aria-label={`Dismiss ${String(toast.ariaLabel ?? toast.title)} notification`}
           className="rounded p-1 text-current opacity-70 outline-none transition hover:opacity-100 focus:ring-2 focus:ring-current"
           onClick={() => onDismiss(toast.id)}
           type="button"
         >
-          x
+          <span aria-hidden="true">x</span>
         </button>
       </div>
     </div>

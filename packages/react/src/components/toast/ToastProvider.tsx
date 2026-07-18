@@ -25,6 +25,7 @@ export function ToastProvider({ children, defaultDuration = 5000, maxToasts, ord
   const showToast = useCallback((toast: ToastInput) => {
     const id = toast.id ?? `toast-${nextIdRef.current++}`;
     const nextToast: Toast = {
+      ariaLabel: toast.ariaLabel,
       description: toast.description,
       duration: toast.duration === undefined ? defaultDuration : toast.duration,
       id,

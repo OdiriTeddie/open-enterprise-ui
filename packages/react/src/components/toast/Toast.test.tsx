@@ -93,6 +93,20 @@ function StackTrigger() {
   );
 }
 
+
+function AccessibleTrigger() {
+  const { showToast } = useToast();
+
+  return (
+    <button
+      onClick={() => showToast({ ariaLabel: "Upload failure notice", description: "File limit exceeded.", duration: null, title: "Upload failed", variant: "error" })}
+      type="button"
+    >
+      Show accessible toast
+    </button>
+  );
+}
+
 function InvalidConsumer() {
   useToast();
   return null;
@@ -131,7 +145,7 @@ describe("Toast", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Show toast" }));
-    await user.click(screen.getByRole("button", { name: "Dismiss notification" }));
+    await user.click(screen.getByRole("button", { name: "Dismiss Saved notification" }));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
@@ -373,6 +387,92 @@ describe("Toast", () => {
     });
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+
+  it("uses toast title and description for accessible naming", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <ToastTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show toast" }));
+
+    expect(screen.getByRole("status", { name: "Saved" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { description: "The record was saved." })).toBeInTheDocument();
+  });
+
+  it("supports a custom accessible label", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <AccessibleTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show accessible toast" }));
+
+    expect(screen.getByRole("alert", { name: "Upload failure notice" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss Upload failure notice notification" })).toBeInTheDocument();
+  });
+
+  it("dismisses a focused toast with Escape", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <ToastTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show toast" }));
+
+    const toast = screen.getByRole("status", { name: "Saved" });
+    screen.getByRole("button", { name: "Dismiss Saved notification" }).focus();
+    await user.keyboard("{Escape}");
+
+    expect(toast).not.toBeInTheDocument();
+  });
+
+  it("keeps toast action buttons keyboard operable", async () => {
+    const user = userEvent.setup();
+    const onPrimary = vi.fn();
+    const onSecondary = vi.fn();
+
+    render(
+      <ToastProvider>
+        <ActionTrigger onPrimary={onPrimary} onSecondary={onSecondary} />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show action toast" }));
+    screen.getByRole("button", { name: "Retry" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(onPrimary).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes reduced-motion safe transition classes", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <ToastTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show toast" }));
+
+    expect(screen.getByRole("status", { name: "Saved" })).toHaveClass("motion-reduce:transition-none");
   });
 
   it("throws when useToast is rendered outside ToastProvider", () => {

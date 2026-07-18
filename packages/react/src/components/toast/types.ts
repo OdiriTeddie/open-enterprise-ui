@@ -16,6 +16,7 @@ export type ToastAction = {
 };
 
 export type Toast = {
+  ariaLabel?: string;
   description?: ReactNode;
   duration?: ToastDuration;
   id: ToastId;
@@ -27,6 +28,7 @@ export type Toast = {
 };
 
 export type ToastInput = {
+  ariaLabel?: string;
   description?: ReactNode;
   duration?: ToastDuration;
   id?: ToastId;

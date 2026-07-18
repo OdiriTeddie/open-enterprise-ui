@@ -79,6 +79,7 @@ type ToastAction = {
 
 type ToastInput = {
   id?: string;
+  ariaLabel?: string;
   title: ReactNode;
   description?: ReactNode;
   variant?: "info" | "success" | "warning" | "error";
@@ -134,4 +135,6 @@ Use `dismissToast(id)` to close one toast and `clearToasts()` to close all visib
 
 ## Accessibility
 
-`ToastViewport` renders a `role="region"` labelled `Notifications`. Info and success toasts render `role="status"` with polite live-region behavior. Warning and error toasts render `role="alert"` with assertive live-region behavior. Every toast includes a labelled dismiss button.
+`ToastViewport` renders a `role="region"` labelled `Notifications`. Info and success toasts render `role="status"` with polite live-region behavior. Warning and error toasts render `role="alert"` with assertive live-region behavior.
+
+Each toast is labelled by its title by default and described by its description when present. Use `ariaLabel` when the visual title is not specific enough for assistive technology. Dismiss buttons include the toast name, action buttons are native buttons, focused toasts can be dismissed with `Escape`, and auto-dismiss timers pause while a toast is hovered or focused. Toast transitions include reduced-motion-safe classes.
