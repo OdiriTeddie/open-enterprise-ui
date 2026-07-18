@@ -36,6 +36,7 @@ React is a peer dependency, so your app should already provide `react` and `reac
 - `FileManager`: provider-backed folder browsing, context menus, rename/move/copy/upload flows, details panel, permissions, keyboard accessibility, and virtualization.
 - `Dialog`: controlled modal surface with accessible labelling, focus management, Escape/backdrop close, and action slots.
 - `Toolbar`: command bar surface with action items, separators, variants, pressed states, and orientation support.
+- `Toast`: notification provider with variants, actions, placement, stacking, promise helpers, accessibility, and render slots.
 - `Drawer`: controlled edge panel for contextual workflows, details views, filters, and secondary forms.
 - `Tabs`: accessible tabbed navigation with controlled/uncontrolled state, disabled tabs, orientation support, and keyboard navigation.
 - `Navigation`: side or top navigation with groups, links, badges, active state, and keyboard movement.

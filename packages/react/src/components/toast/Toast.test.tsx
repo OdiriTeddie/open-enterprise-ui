@@ -153,6 +153,38 @@ function PromiseErrorTrigger({ promise }: { promise: Promise<string> }) {
   );
 }
 
+
+function DismissByIdTrigger() {
+  const { dismissToast, showToast } = useToast();
+
+  return (
+    <>
+      <button onClick={() => showToast({ id: "manual", title: "Manual toast" })} type="button">Show manual toast</button>
+      <button onClick={() => dismissToast("manual")} type="button">Dismiss manual toast</button>
+    </>
+  );
+}
+
+function PromiseReturnTrigger({ onPromise }: { onPromise: (promise: Promise<string>) => void }) {
+  const { toastPromise } = useToast();
+
+  return (
+    <button
+      onClick={() => {
+        const promise = Promise.resolve("returned value");
+        onPromise(toastPromise(promise, {
+          loading: { title: "Running task", variant: "info" },
+          success: { title: "Task complete", variant: "success" },
+          error: { title: "Task failed", variant: "error" },
+        }));
+      }}
+      type="button"
+    >
+      Run returned promise
+    </button>
+  );
+}
+
 function InvalidConsumer() {
   useToast();
   return null;
@@ -703,6 +735,42 @@ describe("Toast", () => {
 
     expect(screen.getByText("Invoice pack.pdf")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Notifications" })).toBeInTheDocument();
+  });
+
+
+  it("dismisses a toast by id from the hook", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <DismissByIdTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show manual toast" }));
+
+    expect(screen.getByRole("status", { name: "Manual toast" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Dismiss manual toast" }));
+
+    expect(screen.queryByRole("status", { name: "Manual toast" })).not.toBeInTheDocument();
+  });
+
+  it("returns the original promise from toastPromise", async () => {
+    const user = userEvent.setup();
+    const onPromise = vi.fn();
+
+    render(
+      <ToastProvider>
+        <PromiseReturnTrigger onPromise={onPromise} />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Run returned promise" }));
+
+    await expect(onPromise.mock.calls[0][0]).resolves.toBe("returned value");
   });
 
   it("throws when useToast is rendered outside ToastProvider", () => {
