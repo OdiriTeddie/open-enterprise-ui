@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ToastProvider, ToastViewport } from ".";
+import { ToastDataGridIntegrationExample, ToastFileManagerIntegrationExample, ToastFormIntegrationExample, ToastProvider, ToastToolbarIntegrationExample, ToastViewport } from ".";
 import { useToast } from "./useToast";
 
 function ToastTrigger() {
@@ -662,6 +662,47 @@ describe("Toast", () => {
     await user.click(screen.getByRole("button", { name: "Close custom toast" }));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+
+  it("shows notifications from the Toolbar integration example", async () => {
+    const user = userEvent.setup();
+
+    render(<ToastToolbarIntegrationExample />);
+
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
+
+    expect(screen.getByRole("status", { name: "Refresh complete" })).toHaveTextContent("Dashboard data is current.");
+  });
+
+  it("shows notifications from the DataGrid bulk action integration example", async () => {
+    const user = userEvent.setup();
+
+    render(<ToastDataGridIntegrationExample />);
+
+    expect(screen.getByRole("button", { name: "Archive selected" })).toBeDisabled();
+
+    await user.click(screen.getAllByRole("checkbox")[1]);
+    await user.click(screen.getByRole("button", { name: "Archive selected" }));
+
+    expect(screen.getByRole("status", { name: "Archive complete" })).toHaveTextContent("1 invoices archived.");
+  });
+
+  it("shows promise notifications from the Form integration example", async () => {
+    const user = userEvent.setup();
+
+    render(<ToastFormIntegrationExample />);
+
+    await user.click(screen.getByRole("button", { name: "Save profile" }));
+
+    expect(await screen.findByRole("status", { name: "Profile saved" })).toHaveTextContent("Profile settings are live.");
+  });
+
+  it("renders the FileManager integration example", () => {
+    render(<ToastFileManagerIntegrationExample />);
+
+    expect(screen.getByText("Invoice pack.pdf")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Notifications" })).toBeInTheDocument();
   });
 
   it("throws when useToast is rendered outside ToastProvider", () => {

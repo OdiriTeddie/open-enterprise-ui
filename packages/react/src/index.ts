@@ -87,7 +87,15 @@ export type {
 } from "./components/toolbar";
 
 
-export { ToastProvider, ToastExample, ToastViewport } from "./components/toast";
+export {
+  ToastDataGridIntegrationExample,
+  ToastExample,
+  ToastFileManagerIntegrationExample,
+  ToastFormIntegrationExample,
+  ToastProvider,
+  ToastToolbarIntegrationExample,
+  ToastViewport,
+} from "./components/toast";
 export { useToast } from "./components/toast/useToast";
 export type {
   Toast,

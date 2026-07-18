@@ -203,6 +203,109 @@ Use `dismissToast(id)` to close one toast and `clearToasts()` to close all visib
 | `warning` | Needs attention. |
 | `error` | Failed workflow or blocking issue. |
 
+
+## Integration Examples
+
+### Toolbar Action
+
+Use `showToast` inside toolbar commands to report background actions.
+
+```tsx
+function Commands() {
+  const { showToast } = useToast();
+
+  const items: ToolbarItem[] = [
+    {
+      id: "refresh",
+      label: "Refresh",
+      onSelect: () => showToast({ title: "Refresh complete", variant: "success" }),
+    },
+  ];
+
+  return <Toolbar ariaLabel="Page commands" items={items} />;
+}
+```
+
+### DataGrid Bulk Action
+
+Keep selected rows in the consuming app, then show a toast when a bulk operation completes.
+
+```tsx
+function InvoiceGrid() {
+  const { showToast } = useToast();
+  const [selectedRowIds, setSelectedRowIds] = useState<RowId[]>([]);
+
+  return (
+    <>
+      <Toolbar
+        ariaLabel="Invoice commands"
+        items={[
+          {
+            id: "archive",
+            label: "Archive selected",
+            disabled: selectedRowIds.length === 0,
+            onSelect: () => showToast({
+              title: "Archive complete",
+              description: `${selectedRowIds.length} invoices archived.`,
+              variant: "success",
+            }),
+          },
+        ]}
+      />
+      <DataGrid
+        columns={columns}
+        data={invoices}
+        enableRowSelection
+        onRowSelectionChange={setSelectedRowIds}
+        selectedRowIds={selectedRowIds}
+      />
+    </>
+  );
+}
+```
+
+### Form Submit
+
+Use `toastPromise` for submit flows so loading, success, and error states stay attached to one notification.
+
+```tsx
+function ProfileForm() {
+  const { toastPromise } = useToast();
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    void toastPromise(saveProfile(), {
+      loading: { title: "Saving profile", variant: "info" },
+      success: { title: "Profile saved", variant: "success" },
+      error: { title: "Save failed", variant: "error" },
+    });
+  }
+
+  return <form onSubmit={handleSubmit}>...</form>;
+}
+```
+
+### File Manager Operations
+
+Use operation callbacks to show upload, download, delete, or provider errors.
+
+```tsx
+<FileManager
+  items={files}
+  onUpload={(uploadedFiles) => showToast({
+    title: "Upload complete",
+    description: `${uploadedFiles.length} files uploaded.`,
+    variant: "success",
+  })}
+  onDelete={(items) => showToast({
+    title: "Delete complete",
+    description: `${items.length} items deleted.`,
+    variant: "success",
+  })}
+/>
+```
+
 ## Accessibility
 
 `ToastViewport` renders a `role="region"` labelled `Notifications`. Info and success toasts render `role="status"` with polite live-region behavior. Warning and error toasts render `role="alert"` with assertive live-region behavior.
