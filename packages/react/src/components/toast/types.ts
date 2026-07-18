@@ -51,6 +51,17 @@ export type ToastPromiseOptions<TValue = unknown> = {
   success: ToastPromiseState<TValue>;
 };
 
+export type ToastRenderContext = {
+  dismiss: () => void;
+  toast: Toast;
+};
+
+export type ToastActionsRenderContext = ToastRenderContext & {
+  primaryAction?: ToastAction;
+  secondaryAction?: ToastAction;
+  selectAction: (action: ToastAction) => void;
+};
+
 export type ToastContextValue = {
   clearToasts: () => void;
   dismissToast: (id: ToastId) => void;
@@ -70,4 +81,8 @@ export type ToastProviderProps = {
 export type ToastViewportProps = {
   className?: string;
   position?: ToastPosition;
+  renderActions?: (context: ToastActionsRenderContext) => ReactNode;
+  renderContent?: (context: ToastRenderContext) => ReactNode;
+  renderIcon?: (context: ToastRenderContext) => ReactNode;
+  renderToast?: (context: ToastRenderContext) => ReactNode;
 };

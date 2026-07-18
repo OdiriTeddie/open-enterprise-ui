@@ -593,6 +593,77 @@ describe("Toast", () => {
     expect(screen.queryByText("Uploading file")).not.toBeInTheDocument();
   });
 
+
+  it("renders custom toast icon and content slots", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <ToastTrigger />
+        <ToastViewport
+          renderContent={({ toast }) => <div>Custom content: {toast.title}</div>}
+          renderIcon={({ toast }) => <span>{toast.variant} icon</span>}
+        />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show toast" }));
+
+    expect(screen.getByText("Custom content: Saved")).toBeInTheDocument();
+    expect(screen.getByText("success icon")).toBeInTheDocument();
+  });
+
+  it("renders custom toast actions with select helpers", async () => {
+    const user = userEvent.setup();
+    const onPrimary = vi.fn();
+    const onSecondary = vi.fn();
+
+    render(
+      <ToastProvider>
+        <ActionTrigger onPrimary={onPrimary} onSecondary={onSecondary} />
+        <ToastViewport
+          renderActions={({ primaryAction, selectAction }) => (
+            <button onClick={() => primaryAction ? selectAction(primaryAction) : undefined} type="button">
+              Custom retry
+            </button>
+          )}
+        />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show action toast" }));
+    await user.click(screen.getByRole("button", { name: "Custom retry" }));
+
+    expect(onPrimary).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("renders a full custom toast and exposes dismiss", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <ToastTrigger />
+        <ToastViewport
+          renderToast={({ dismiss, toast }) => (
+            <div>
+              <strong>Rendered {toast.title}</strong>
+              <button onClick={dismiss} type="button">Close custom toast</button>
+            </div>
+          )}
+        />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show toast" }));
+
+    expect(screen.getByText("Rendered Saved")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close custom toast" }));
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("throws when useToast is rendered outside ToastProvider", () => {
     expect(() => render(<InvalidConsumer />)).toThrow("useToast must be used within a ToastProvider.");
   });

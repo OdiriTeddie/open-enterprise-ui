@@ -102,6 +102,8 @@ export type {
   ToastPromiseOptions,
   ToastPromiseState,
   ToastProviderProps,
+  ToastRenderContext,
+  ToastActionsRenderContext,
   ToastUpdate,
   ToastVariant,
   ToastViewportProps,

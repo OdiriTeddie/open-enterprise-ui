@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
-import type { Toast, ToastAction, ToastPosition, ToastViewportProps, ToastVariant } from "./types";
+import type { KeyboardEvent, ReactNode } from "react";
+import type { Toast, ToastAction, ToastActionsRenderContext, ToastPosition, ToastRenderContext, ToastViewportProps, ToastVariant } from "./types";
 import { useToast } from "./useToast";
 
 const variantClasses: Record<ToastVariant, string> = {
@@ -31,7 +31,14 @@ const variantLabels: Record<ToastVariant, string> = {
   warning: "Warning",
 };
 
-export function ToastViewport({ className = "", position = "top-right" }: ToastViewportProps) {
+export function ToastViewport({
+  className = "",
+  position = "top-right",
+  renderActions,
+  renderContent,
+  renderIcon,
+  renderToast,
+}: ToastViewportProps) {
   const { dismissToast, toasts } = useToast();
 
   return (
@@ -41,13 +48,35 @@ export function ToastViewport({ className = "", position = "top-right" }: ToastV
       role="region"
     >
       {toasts.map((toast) => (
-        <ToastItem key={toast.id} onDismiss={dismissToast} toast={toast} />
+        <ToastItem
+          key={toast.id}
+          onDismiss={dismissToast}
+          renderActions={renderActions}
+          renderContent={renderContent}
+          renderIcon={renderIcon}
+          renderToast={renderToast}
+          toast={toast}
+        />
       ))}
     </div>
   );
 }
 
-function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toast: Toast }) {
+function ToastItem({
+  onDismiss,
+  renderActions,
+  renderContent,
+  renderIcon,
+  renderToast,
+  toast,
+}: {
+  onDismiss: (id: string) => void;
+  renderActions?: (context: ToastActionsRenderContext) => ReactNode;
+  renderContent?: (context: ToastRenderContext) => ReactNode;
+  renderIcon?: (context: ToastRenderContext) => ReactNode;
+  renderToast?: (context: ToastRenderContext) => ReactNode;
+  toast: Toast;
+}) {
   const titleId = useId();
   const descriptionId = useId();
   const [isPaused, setIsPaused] = useState(false);
@@ -67,13 +96,17 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
     }
 
     startedAtRef.current = Date.now();
-    const timeoutId = window.setTimeout(() => onDismiss(toast.id), remainingDuration);
+    const timeoutId = window.setTimeout(() => dismiss(), remainingDuration);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isPaused, onDismiss, toast.duration, toast.id]);
+  });
 
   const isAssertive = toast.variant === "error" || toast.variant === "warning";
   const hasActions = Boolean(toast.primaryAction || toast.secondaryAction);
+
+  function dismiss() {
+    onDismiss(toast.id);
+  }
 
   function handlePause() {
     if (toast.duration === null || isPaused) {
@@ -97,15 +130,23 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
 
   function handleActionSelect(action: ToastAction) {
     action.onSelect();
-    onDismiss(toast.id);
+    dismiss();
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
-      onDismiss(toast.id);
+      dismiss();
     }
   }
+
+  const renderContext: ToastRenderContext = { dismiss, toast };
+  const actionsContext: ToastActionsRenderContext = {
+    ...renderContext,
+    primaryAction: toast.primaryAction,
+    secondaryAction: toast.secondaryAction,
+    selectAction: handleActionSelect,
+  };
 
   return (
     <div
@@ -121,27 +162,36 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
       onMouseLeave={handleResume}
       role={isAssertive ? "alert" : "status"}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <p className="text-xs font-semibold uppercase text-current opacity-75">{variantLabels[toast.variant]}</p>
-          <div className="mt-1 text-sm font-semibold" id={titleId}>{toast.title}</div>
-          {toast.description ? <div className="mt-1 text-sm opacity-85" id={descriptionId}>{toast.description}</div> : null}
-          {hasActions ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {toast.primaryAction ? <ToastActionButton action={toast.primaryAction} onSelect={handleActionSelect} priority="primary" /> : null}
-              {toast.secondaryAction ? <ToastActionButton action={toast.secondaryAction} onSelect={handleActionSelect} priority="secondary" /> : null}
-            </div>
-          ) : null}
+      {renderToast ? renderToast(renderContext) : (
+        <div className="flex items-start gap-3">
+          {renderIcon ? <div aria-hidden="true" className="shrink-0">{renderIcon(renderContext)}</div> : null}
+          <div className="flex-1">
+            {renderContent ? renderContent(renderContext) : (
+              <>
+                <p className="text-xs font-semibold uppercase text-current opacity-75">{variantLabels[toast.variant]}</p>
+                <div className="mt-1 text-sm font-semibold" id={titleId}>{toast.title}</div>
+                {toast.description ? <div className="mt-1 text-sm opacity-85" id={descriptionId}>{toast.description}</div> : null}
+              </>
+            )}
+            {hasActions ? (
+              renderActions ? renderActions(actionsContext) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {toast.primaryAction ? <ToastActionButton action={toast.primaryAction} onSelect={handleActionSelect} priority="primary" /> : null}
+                  {toast.secondaryAction ? <ToastActionButton action={toast.secondaryAction} onSelect={handleActionSelect} priority="secondary" /> : null}
+                </div>
+              )
+            ) : null}
+          </div>
+          <button
+            aria-label={`Dismiss ${String(toast.ariaLabel ?? toast.title)} notification`}
+            className="rounded p-1 text-current opacity-70 outline-none transition hover:opacity-100 focus:ring-2 focus:ring-current"
+            onClick={dismiss}
+            type="button"
+          >
+            <span aria-hidden="true">x</span>
+          </button>
         </div>
-        <button
-          aria-label={`Dismiss ${String(toast.ariaLabel ?? toast.title)} notification`}
-          className="rounded p-1 text-current opacity-70 outline-none transition hover:opacity-100 focus:ring-2 focus:ring-current"
-          onClick={() => onDismiss(toast.id)}
-          type="button"
-        >
-          <span aria-hidden="true">x</span>
-        </button>
-      </div>
+      )}
     </div>
   );
 }

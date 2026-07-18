@@ -57,6 +57,10 @@ function SaveButton() {
 | --- | --- | --- |
 | `className` | `string` | Additional class names for the fixed notification viewport. |
 | `position` | `"top-right" \| "top-left" \| "bottom-right" \| "bottom-left" \| "top-center" \| "bottom-center"` | Viewport placement. Defaults to `"top-right"`. |
+| `renderIcon` | `(context: ToastRenderContext) => ReactNode` | Custom icon slot for the default toast layout. |
+| `renderContent` | `(context: ToastRenderContext) => ReactNode` | Custom title/body content for the default toast layout. |
+| `renderActions` | `(context: ToastActionsRenderContext) => ReactNode` | Custom action rendering for the default toast layout. |
+| `renderToast` | `(context: ToastRenderContext) => ReactNode` | Full toast body override inside the accessible toast shell. |
 
 ## Hook API
 
@@ -96,6 +100,39 @@ type ToastInput = {
 
 
 
+
+
+## Composition
+
+Use render slots when product teams need custom visuals while keeping the provider, timers, placement, stacking, and accessibility shell.
+
+```tsx
+<ToastViewport
+  renderIcon={({ toast }) => <StatusIcon variant={toast.variant} />}
+  renderContent={({ toast }) => (
+    <div>
+      <strong>{toast.title}</strong>
+      {toast.description ? <p>{toast.description}</p> : null}
+    </div>
+  )}
+  renderActions={({ primaryAction, selectAction }) => (
+    primaryAction ? <button onClick={() => selectAction(primaryAction)}>{primaryAction.label}</button> : null
+  )}
+/>
+```
+
+Use `renderToast` for a full body override. The accessible toast shell, live-region semantics, Escape dismissal, hover/focus timer pause, and placement remain managed by `ToastViewport`.
+
+```tsx
+<ToastViewport
+  renderToast={({ dismiss, toast }) => (
+    <div>
+      <strong>{toast.title}</strong>
+      <button onClick={dismiss}>Close</button>
+    </div>
+  )}
+/>
+```
 
 ## Promise Helpers
 
