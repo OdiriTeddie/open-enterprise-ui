@@ -48,12 +48,15 @@ function SaveButton() {
 | --- | --- | --- |
 | `children` | `ReactNode` | Provider contents. |
 | `defaultDuration` | `number` | Default auto-dismiss duration in milliseconds. Defaults to `5000`. |
+| `maxToasts` | `number` | Maximum number of visible toasts. Extra toasts are trimmed from the end of the ordered stack. |
+| `order` | `"newest-first" \| "oldest-first"` | Controls stack order. Defaults to `"newest-first"`. |
 
 ## Viewport Props
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `className` | `string` | Additional class names for the fixed notification viewport. |
+| `position` | `"top-right" \| "top-left" \| "bottom-right" \| "bottom-left" \| "top-center" \| "bottom-center"` | Viewport placement. Defaults to `"top-right"`. |
 
 ## Hook API
 
@@ -88,6 +91,19 @@ type ToastInput = {
 
 `showToast` returns the toast id. Passing the same `id` again replaces the previous toast with that id. Use `duration: null` for persistent toasts that only dismiss through an action, the dismiss button, or `dismissToast`.
 
+
+
+## Placement and Stacking
+
+Use `position` on `ToastViewport` to place notifications and provider props to control stack behavior.
+
+```tsx
+<ToastProvider maxToasts={3} order="newest-first">
+  <ToastViewport position="bottom-right" />
+</ToastProvider>
+```
+
+Available positions are `top-right`, `top-left`, `bottom-right`, `bottom-left`, `top-center`, and `bottom-center`. Auto-dismiss timers pause while a toast is hovered or focused, so users can read content and interact with actions without racing the timeout.
 
 ## Actions
 

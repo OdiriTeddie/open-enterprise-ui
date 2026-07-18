@@ -80,6 +80,19 @@ function ClearTrigger() {
   );
 }
 
+
+function StackTrigger() {
+  const { showToast } = useToast();
+
+  return (
+    <>
+      <button onClick={() => showToast({ id: "first", title: "First" })} type="button">Show first stack</button>
+      <button onClick={() => showToast({ id: "second", title: "Second" })} type="button">Show second stack</button>
+      <button onClick={() => showToast({ id: "third", title: "Third" })} type="button">Show third stack</button>
+    </>
+  );
+}
+
 function InvalidConsumer() {
   useToast();
   return null;
@@ -256,6 +269,108 @@ describe("Toast", () => {
     expect(screen.getAllByRole("status")).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+
+  it("applies viewport placement classes", () => {
+    render(
+      <ToastProvider>
+        <ToastViewport position="bottom-center" />
+      </ToastProvider>,
+    );
+
+    expect(screen.getByRole("region", { name: "Notifications" })).toHaveClass("bottom-4");
+    expect(screen.getByRole("region", { name: "Notifications" })).toHaveClass("left-1/2");
+  });
+
+  it("stacks newest toasts first by default", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <StackTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show first stack" }));
+    await user.click(screen.getByRole("button", { name: "Show second stack" }));
+
+    const toasts = screen.getAllByRole("status");
+    expect(toasts[0]).toHaveTextContent("Second");
+    expect(toasts[1]).toHaveTextContent("First");
+  });
+
+  it("supports oldest-first stack order", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider order="oldest-first">
+        <StackTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show first stack" }));
+    await user.click(screen.getByRole("button", { name: "Show second stack" }));
+
+    const toasts = screen.getAllByRole("status");
+    expect(toasts[0]).toHaveTextContent("First");
+    expect(toasts[1]).toHaveTextContent("Second");
+  });
+
+  it("limits the number of visible toasts", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider maxToasts={2}>
+        <StackTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show first stack" }));
+    await user.click(screen.getByRole("button", { name: "Show second stack" }));
+    await user.click(screen.getByRole("button", { name: "Show third stack" }));
+
+    expect(screen.getAllByRole("status")).toHaveLength(2);
+    expect(screen.getByText("Third")).toBeInTheDocument();
+    expect(screen.getByText("Second")).toBeInTheDocument();
+    expect(screen.queryByText("First")).not.toBeInTheDocument();
+  });
+
+  it("pauses auto-dismiss while hovered and resumes when unhovered", () => {
+    vi.useFakeTimers();
+
+    render(
+      <ToastProvider>
+        <DurationTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show timed toast" }));
+    const toast = screen.getByRole("status");
+
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    fireEvent.mouseEnter(toast);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Sync complete");
+
+    fireEvent.mouseLeave(toast);
+
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });

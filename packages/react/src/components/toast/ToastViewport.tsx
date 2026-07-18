@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import type { Toast, ToastAction, ToastViewportProps, ToastVariant } from "./types";
+import { useEffect, useRef, useState } from "react";
+import type { Toast, ToastAction, ToastPosition, ToastViewportProps, ToastVariant } from "./types";
 import { useToast } from "./useToast";
 
 const variantClasses: Record<ToastVariant, string> = {
@@ -14,6 +14,15 @@ const actionClasses = {
   secondary: "border border-current px-3 py-1.5 text-current hover:bg-white/50",
 };
 
+const positionClasses: Record<ToastPosition, string> = {
+  "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
+  "bottom-left": "bottom-4 left-4",
+  "bottom-right": "bottom-4 right-4",
+  "top-center": "left-1/2 top-4 -translate-x-1/2",
+  "top-left": "left-4 top-4",
+  "top-right": "right-4 top-4",
+};
+
 const variantLabels: Record<ToastVariant, string> = {
   error: "Error",
   info: "Info",
@@ -21,13 +30,13 @@ const variantLabels: Record<ToastVariant, string> = {
   warning: "Warning",
 };
 
-export function ToastViewport({ className = "" }: ToastViewportProps) {
+export function ToastViewport({ className = "", position = "top-right" }: ToastViewportProps) {
   const { dismissToast, toasts } = useToast();
 
   return (
     <div
       aria-label="Notifications"
-      className={`fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-3 ${className}`}
+      className={`fixed z-50 flex w-full max-w-sm flex-col gap-3 ${positionClasses[position]} ${className}`}
       role="region"
     >
       {toasts.map((toast) => (
@@ -38,18 +47,50 @@ export function ToastViewport({ className = "" }: ToastViewportProps) {
 }
 
 function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toast: Toast }) {
+  const [isPaused, setIsPaused] = useState(false);
+  const remainingDurationRef = useRef<number | null>(toast.duration ?? null);
+  const startedAtRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (toast.duration === null) {
+    remainingDurationRef.current = toast.duration ?? null;
+    startedAtRef.current = null;
+  }, [toast.duration, toast.id]);
+
+  useEffect(() => {
+    const remainingDuration = remainingDurationRef.current;
+
+    if (toast.duration === null || isPaused || remainingDuration === null) {
       return undefined;
     }
 
-    const timeoutId = window.setTimeout(() => onDismiss(toast.id), toast.duration);
+    startedAtRef.current = Date.now();
+    const timeoutId = window.setTimeout(() => onDismiss(toast.id), remainingDuration);
 
     return () => window.clearTimeout(timeoutId);
-  }, [onDismiss, toast.duration, toast.id]);
+  }, [isPaused, onDismiss, toast.duration, toast.id]);
 
   const isAssertive = toast.variant === "error" || toast.variant === "warning";
   const hasActions = Boolean(toast.primaryAction || toast.secondaryAction);
+
+  function handlePause() {
+    if (toast.duration === null || isPaused) {
+      return;
+    }
+
+    const startedAt = startedAtRef.current;
+    const remainingDuration = remainingDurationRef.current;
+    if (startedAt && remainingDuration !== null) {
+      remainingDurationRef.current = Math.max(0, remainingDuration - (Date.now() - startedAt));
+    }
+
+    setIsPaused(true);
+  }
+
+  function handleResume() {
+    if (toast.duration !== null) {
+      setIsPaused(false);
+    }
+  }
 
   function handleActionSelect(action: ToastAction) {
     action.onSelect();
@@ -60,6 +101,10 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
     <div
       aria-live={isAssertive ? "assertive" : "polite"}
       className={`rounded-md border p-4 shadow-lg ${variantClasses[toast.variant]}`}
+      onBlur={handleResume}
+      onFocus={handlePause}
+      onMouseEnter={handlePause}
+      onMouseLeave={handleResume}
       role={isAssertive ? "alert" : "status"}
     >
       <div className="flex items-start gap-3">

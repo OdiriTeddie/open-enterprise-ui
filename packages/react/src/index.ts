@@ -96,6 +96,8 @@ export type {
   ToastDuration,
   ToastId,
   ToastInput,
+  ToastOrder,
+  ToastPosition,
   ToastProviderProps,
   ToastVariant,
   ToastViewportProps,
