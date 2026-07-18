@@ -91,7 +91,9 @@ export { ToastProvider, ToastExample, ToastViewport } from "./components/toast";
 export { useToast } from "./components/toast/useToast";
 export type {
   Toast,
+  ToastAction,
   ToastContextValue,
+  ToastDuration,
   ToastId,
   ToastInput,
   ToastProviderProps,

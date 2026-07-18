@@ -7,15 +7,30 @@ export function ToastProvider({ children, defaultDuration = 5000 }: ToastProvide
   const nextIdRef = useRef(0);
 
   const dismissToast = useCallback((id: ToastId) => {
-    setToasts((currentToasts) => currentToasts.filter((toast) => toast.id !== id));
+    setToasts((currentToasts) => {
+      const toastToDismiss = currentToasts.find((toast) => toast.id === id);
+      toastToDismiss?.onDismiss?.();
+
+      return currentToasts.filter((toast) => toast.id !== id);
+    });
+  }, []);
+
+  const clearToasts = useCallback(() => {
+    setToasts((currentToasts) => {
+      currentToasts.forEach((toast) => toast.onDismiss?.());
+      return [];
+    });
   }, []);
 
   const showToast = useCallback((toast: ToastInput) => {
     const id = toast.id ?? `toast-${nextIdRef.current++}`;
     const nextToast: Toast = {
       description: toast.description,
-      duration: toast.duration ?? defaultDuration,
+      duration: toast.duration === undefined ? defaultDuration : toast.duration,
       id,
+      onDismiss: toast.onDismiss,
+      primaryAction: toast.primaryAction,
+      secondaryAction: toast.secondaryAction,
       title: toast.title,
       variant: toast.variant ?? "info",
     };
@@ -26,8 +41,8 @@ export function ToastProvider({ children, defaultDuration = 5000 }: ToastProvide
   }, [defaultDuration]);
 
   const value = useMemo<ToastContextValue>(
-    () => ({ dismissToast, showToast, toasts }),
-    [dismissToast, showToast, toasts],
+    () => ({ clearToasts, dismissToast, showToast, toasts }),
+    [clearToasts, dismissToast, showToast, toasts],
   );
 
   return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;

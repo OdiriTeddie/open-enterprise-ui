@@ -3,7 +3,7 @@ import { ToastViewport } from "./ToastViewport";
 import { useToast } from "./useToast";
 
 function ToastExampleContent() {
-  const { showToast } = useToast();
+  const { clearToasts, showToast } = useToast();
 
   return (
     <div className="rounded-md border border-gray-200 bg-white p-4">
@@ -17,10 +17,24 @@ function ToastExampleContent() {
         </button>
         <button
           className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          onClick={() => showToast({ description: "Upload failed because the file is too large.", title: "Upload failed", variant: "error" })}
+          onClick={() => showToast({
+            description: "Upload failed because the file is too large.",
+            duration: null,
+            primaryAction: { label: "Retry", onSelect: () => undefined },
+            secondaryAction: { label: "View details", onSelect: () => undefined },
+            title: "Upload failed",
+            variant: "error",
+          })}
           type="button"
         >
-          Show error
+          Show action toast
+        </button>
+        <button
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          onClick={clearToasts}
+          type="button"
+        >
+          Clear all
         </button>
       </div>
       <ToastViewport className="absolute" />

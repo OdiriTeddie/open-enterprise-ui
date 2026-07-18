@@ -62,22 +62,50 @@ type ToastContextValue = {
   toasts: Toast[];
   showToast: (toast: ToastInput) => ToastId;
   dismissToast: (id: ToastId) => void;
+  clearToasts: () => void;
 };
 ```
 
 ## Toast Input
 
 ```ts
+type ToastAction = {
+  label: ReactNode;
+  onSelect: () => void;
+};
+
 type ToastInput = {
   id?: string;
   title: ReactNode;
   description?: ReactNode;
   variant?: "info" | "success" | "warning" | "error";
-  duration?: number;
+  duration?: number | null;
+  primaryAction?: ToastAction;
+  secondaryAction?: ToastAction;
+  onDismiss?: () => void;
 };
 ```
 
-`showToast` returns the toast id. Passing the same `id` again replaces the previous toast with that id.
+`showToast` returns the toast id. Passing the same `id` again replaces the previous toast with that id. Use `duration: null` for persistent toasts that only dismiss through an action, the dismiss button, or `dismissToast`.
+
+
+## Actions
+
+Toasts can include one primary and one secondary action. Selecting an action calls its `onSelect` handler and dismisses the toast.
+
+```tsx
+showToast({
+  title: "Upload failed",
+  description: "The file is larger than the upload limit.",
+  variant: "error",
+  duration: null,
+  primaryAction: { label: "Retry", onSelect: retryUpload },
+  secondaryAction: { label: "View details", onSelect: openUploadDetails },
+  onDismiss: trackDismiss,
+});
+```
+
+Use `dismissToast(id)` to close one toast and `clearToasts()` to close all visible toasts. Dismiss callbacks run for manual dismiss, auto-dismiss, action dismiss, and clear-all dismiss.
 
 ## Variants
 

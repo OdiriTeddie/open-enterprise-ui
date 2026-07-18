@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Toast, ToastViewportProps, ToastVariant } from "./types";
+import type { Toast, ToastAction, ToastViewportProps, ToastVariant } from "./types";
 import { useToast } from "./useToast";
 
 const variantClasses: Record<ToastVariant, string> = {
@@ -7,6 +7,11 @@ const variantClasses: Record<ToastVariant, string> = {
   info: "border-blue-200 bg-blue-50 text-blue-900",
   success: "border-green-200 bg-green-50 text-green-900",
   warning: "border-amber-200 bg-amber-50 text-amber-900",
+};
+
+const actionClasses = {
+  primary: "bg-current px-3 py-1.5 text-white hover:opacity-90",
+  secondary: "border border-current px-3 py-1.5 text-current hover:bg-white/50",
 };
 
 const variantLabels: Record<ToastVariant, string> = {
@@ -34,7 +39,7 @@ export function ToastViewport({ className = "" }: ToastViewportProps) {
 
 function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toast: Toast }) {
   useEffect(() => {
-    if (toast.duration === 0) {
+    if (toast.duration === null) {
       return undefined;
     }
 
@@ -44,6 +49,12 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
   }, [onDismiss, toast.duration, toast.id]);
 
   const isAssertive = toast.variant === "error" || toast.variant === "warning";
+  const hasActions = Boolean(toast.primaryAction || toast.secondaryAction);
+
+  function handleActionSelect(action: ToastAction) {
+    action.onSelect();
+    onDismiss(toast.id);
+  }
 
   return (
     <div
@@ -56,6 +67,12 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
           <p className="text-xs font-semibold uppercase text-current opacity-75">{variantLabels[toast.variant]}</p>
           <div className="mt-1 text-sm font-semibold">{toast.title}</div>
           {toast.description ? <div className="mt-1 text-sm opacity-85">{toast.description}</div> : null}
+          {hasActions ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {toast.primaryAction ? <ToastActionButton action={toast.primaryAction} onSelect={handleActionSelect} priority="primary" /> : null}
+              {toast.secondaryAction ? <ToastActionButton action={toast.secondaryAction} onSelect={handleActionSelect} priority="secondary" /> : null}
+            </div>
+          ) : null}
         </div>
         <button
           aria-label="Dismiss notification"
@@ -70,3 +87,22 @@ function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toas
   );
 }
 
+function ToastActionButton({
+  action,
+  onSelect,
+  priority,
+}: {
+  action: ToastAction;
+  onSelect: (action: ToastAction) => void;
+  priority: keyof typeof actionClasses;
+}) {
+  return (
+    <button
+      className={`rounded-md text-xs font-semibold outline-none transition focus:ring-2 focus:ring-current ${actionClasses[priority]}`}
+      onClick={() => onSelect(action)}
+      type="button"
+    >
+      {action.label}
+    </button>
+  );
+}
