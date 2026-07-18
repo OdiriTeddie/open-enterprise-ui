@@ -8,6 +8,7 @@ import { FileManagerExample } from "./components/file-manager";
 import { FormExample } from "./components/form";
 import { NavigationExample } from "./components/navigation";
 import { TabsExample } from "./components/tabs";
+import { ToastExample } from "./components/toast";
 import { TreeListExample } from "./components/tree-list";
 import {
   ToolbarDataGridIntegrationExample,
@@ -44,6 +45,13 @@ function App() {
           Toolbar
         </h1>
         <ToolbarExample />
+      </section>
+
+      <section>
+        <h1 className="mb-3 text-xl font-semibold text-gray-900">
+          Toast Notifications
+        </h1>
+        <ToastExample />
       </section>
 
       <section>

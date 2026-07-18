@@ -2,13 +2,13 @@
 
 Open-source UI components for teams building internal tools, admin panels, dashboards, and data-heavy products.
 
-The project currently ships a React package with enterprise-focused `DataGrid`, `TreeList`, form primitives/Form Builder, `FileManager`, `Dialog`, `Drawer`, `Toolbar`, `Tabs`, and `Navigation` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
+The project currently ships a React package with enterprise-focused `DataGrid`, `TreeList`, form primitives/Form Builder, `FileManager`, `Dialog`, `Drawer`, `Toolbar`, `Toast`, `Tabs`, and `Navigation` components. The repo is structured so other framework packages, such as Vue, can be added later without renaming or reshaping the project again.
 
 ## Packages
 
 | Package | Status | Description |
 | --- | --- | --- |
-| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, `TreeList`, forms, `FileManager`, `Dialog`, `Drawer`, `Toolbar`, `Tabs`, and `Navigation`. |
+| `@open-enterprise-ui/react` | Early development | React components including `DataGrid`, `TreeList`, forms, `FileManager`, `Dialog`, `Drawer`, `Toolbar`, `Toast`, `Tabs`, and `Navigation`. |
 | `@open-enterprise-ui/vue` | Planned | Vue components. |
 
 ## Goals
@@ -92,6 +92,7 @@ export function UsersTable({ users }: { users: User[] }) {
 - [File Manager API](./docs/file-manager.md)
 - [Dialog API](./docs/dialog.md)
 - [Toolbar API](./docs/toolbar.md)
+- [Toast API](./docs/toast.md)
 - [Drawer API](./docs/drawer.md)
 - [Tabs API](./docs/tabs.md)
 - [Navigation API](./docs/navigation.md)

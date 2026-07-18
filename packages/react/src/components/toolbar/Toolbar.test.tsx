@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "./Toolbar";
@@ -32,20 +32,52 @@ describe("Toolbar", () => {
   });
 
 
-  it("renders the DataGrid integration example", () => {
+  it("filters the DataGrid integration from the toolbar search", async () => {
+    const user = userEvent.setup();
+
     render(<ToolbarDataGridIntegrationExample />);
 
-    expect(screen.getByRole("toolbar", { name: "Account grid commands" })).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: "Accounts table" })).toBeInTheDocument();
-    expect(screen.getByRole("searchbox", { name: "Search accounts" })).toBeInTheDocument();
+    await user.type(screen.getByRole("searchbox", { name: "Search accounts" }), "Northwind");
+
+    expect(screen.getByText("Northwind Finance")).toBeInTheDocument();
+    expect(screen.queryByText("Acme Operations")).not.toBeInTheDocument();
   });
 
-  it("renders the FileManager integration example", () => {
+  it("updates DataGrid integration toolbar state from row selection", async () => {
+    const user = userEvent.setup();
+
+    render(<ToolbarDataGridIntegrationExample />);
+
+    expect(screen.getByRole("button", { name: "Assign" })).toBeDisabled();
+
+    await user.click(screen.getAllByRole("checkbox")[1]);
+
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Assign" })).toBeEnabled();
+  });
+
+  it("filters the FileManager integration from the toolbar search", async () => {
+    const user = userEvent.setup();
+
     render(<ToolbarFileManagerIntegrationExample />);
 
-    expect(screen.getByRole("toolbar", { name: "File manager commands" })).toBeInTheDocument();
-    expect(screen.getAllByRole("searchbox", { name: "Search files" }).length).toBeGreaterThan(0);
-    expect(screen.getByText("Master service agreement.pdf")).toBeInTheDocument();
+    const toolbar = screen.getByRole("toolbar", { name: "File manager commands" });
+    await user.type(within(toolbar).getByRole("searchbox", { name: "Search files" }), "Forecast");
+
+    expect(screen.getByText("Forecast.xlsx")).toBeInTheDocument();
+    expect(screen.queryByText("Master service agreement.pdf")).not.toBeInTheDocument();
+  });
+
+  it("changes FileManager integration view mode from toolbar actions", async () => {
+    const user = userEvent.setup();
+
+    render(<ToolbarFileManagerIntegrationExample />);
+
+    const toolbar = screen.getByRole("toolbar", { name: "File manager commands" });
+    await user.click(within(toolbar).getByRole("button", { name: "Grid" }));
+
+    expect(within(toolbar).getByRole("button", { name: "Grid" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(toolbar).getByRole("button", { name: "List" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("renders composed children as custom controls", async () => {
@@ -65,6 +97,22 @@ describe("Toolbar", () => {
     await user.click(screen.getByRole("button", { name: "Custom control" }));
 
     expect(onCustomSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps composed child controls in the natural tab order", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Toolbar items={[{ id: "refresh", label: "Refresh" }, { id: "export", label: "Export" }]}>
+        <input aria-label="Search commands" />
+      </Toolbar>,
+    );
+
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Refresh" })).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole("textbox", { name: "Search commands" })).toHaveFocus();
   });
 
   it("calls action handlers", async () => {
@@ -184,6 +232,31 @@ describe("Toolbar", () => {
     expect(screen.getByRole("toolbar")).toHaveClass("overflow-y-auto");
   });
 
+  it("updates menu button expanded state", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "view",
+            items: [{ id: "grid", label: "Grid" }],
+            label: "View",
+            type: "menu",
+          },
+        ]}
+      />,
+    );
+
+    const menuButton = screen.getByRole("button", { name: "View" });
+
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(menuButton);
+
+    expect(menuButton).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("opens a menu item and selects an option", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
@@ -242,6 +315,57 @@ describe("Toolbar", () => {
     await user.keyboard("{Enter}");
 
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips disabled menu options during keyboard navigation", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "view",
+            items: [
+              { id: "list", label: "List" },
+              { disabled: true, id: "details", label: "Details" },
+              { id: "grid", label: "Grid" },
+            ],
+            label: "View",
+            type: "menu",
+          },
+        ]}
+      />,
+    );
+
+    screen.getByRole("button", { name: "View" }).focus();
+    await user.keyboard("{ArrowDown}");
+    await user.keyboard("{ArrowDown}");
+
+    expect(screen.getByRole("menuitem", { name: "Grid" })).toHaveFocus();
+  });
+
+  it("opens vertical toolbar menus with Enter", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Toolbar
+        items={[
+          {
+            id: "view",
+            items: [{ id: "grid", label: "Grid" }],
+            label: "View",
+            type: "menu",
+          },
+        ]}
+        orientation="vertical"
+      />,
+    );
+
+    screen.getByRole("button", { name: "View" }).focus();
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByRole("menu", { name: "View menu" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Grid" })).toHaveFocus();
   });
 
   it("closes open menus with Escape", async () => {
