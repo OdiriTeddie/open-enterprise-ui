@@ -64,6 +64,8 @@ function SaveButton() {
 type ToastContextValue = {
   toasts: Toast[];
   showToast: (toast: ToastInput) => ToastId;
+  updateToast: (id: ToastId, toast: ToastUpdate) => void;
+  toastPromise: <TValue>(promise: Promise<TValue>, options: ToastPromiseOptions<TValue>) => Promise<TValue>;
   dismissToast: (id: ToastId) => void;
   clearToasts: () => void;
 };
@@ -93,6 +95,37 @@ type ToastInput = {
 `showToast` returns the toast id. Passing the same `id` again replaces the previous toast with that id. Use `duration: null` for persistent toasts that only dismiss through an action, the dismiss button, or `dismissToast`.
 
 
+
+
+## Promise Helpers
+
+Use `updateToast` when a workflow has an existing toast id and needs to replace its content.
+
+```tsx
+const id = showToast({ title: "Syncing", variant: "info", duration: null });
+
+updateToast(id, {
+  title: "Sync complete",
+  description: "All records are current.",
+  variant: "success",
+});
+```
+
+Use `toastPromise` for async workflows. It shows the loading toast immediately, then updates the same toast when the promise resolves or rejects. The helper returns the original promise so callers can continue awaiting it.
+
+```tsx
+await toastPromise(saveCustomer(customer), {
+  loading: { title: "Saving customer", variant: "info" },
+  success: { title: "Customer saved", variant: "success" },
+  error: (error) => ({
+    title: "Save failed",
+    description: error instanceof Error ? error.message : "Please try again.",
+    variant: "error",
+  }),
+});
+```
+
+Loading promise toasts are persistent by default unless `loading.duration` is provided.
 
 ## Placement and Stacking
 

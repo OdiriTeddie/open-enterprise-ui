@@ -39,11 +39,25 @@ export type ToastInput = {
   variant?: ToastVariant;
 };
 
+export type ToastUpdate = Partial<Omit<ToastInput, "id">>;
+
+export type ToastPromiseState<TValue = unknown> = ToastInput | ((value: TValue) => ToastInput);
+
+export type ToastPromiseErrorState = ToastInput | ((error: unknown) => ToastInput);
+
+export type ToastPromiseOptions<TValue = unknown> = {
+  error: ToastPromiseErrorState;
+  loading: ToastInput;
+  success: ToastPromiseState<TValue>;
+};
+
 export type ToastContextValue = {
   clearToasts: () => void;
   dismissToast: (id: ToastId) => void;
   showToast: (toast: ToastInput) => ToastId;
+  toastPromise: <TValue>(promise: Promise<TValue>, options: ToastPromiseOptions<TValue>) => Promise<TValue>;
   toasts: Toast[];
+  updateToast: (id: ToastId, toast: ToastUpdate) => void;
 };
 
 export type ToastProviderProps = {

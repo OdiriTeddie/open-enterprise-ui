@@ -98,7 +98,11 @@ export type {
   ToastInput,
   ToastOrder,
   ToastPosition,
+  ToastPromiseErrorState,
+  ToastPromiseOptions,
+  ToastPromiseState,
   ToastProviderProps,
+  ToastUpdate,
   ToastVariant,
   ToastViewportProps,
 } from "./components/toast/types";

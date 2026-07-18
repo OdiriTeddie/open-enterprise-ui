@@ -107,6 +107,52 @@ function AccessibleTrigger() {
   );
 }
 
+
+function UpdateTrigger() {
+  const { showToast, updateToast } = useToast();
+
+  return (
+    <>
+      <button onClick={() => showToast({ id: "sync", title: "Syncing", variant: "info" })} type="button">Show update toast</button>
+      <button onClick={() => updateToast("sync", { description: "All records are current.", title: "Sync complete", variant: "success" })} type="button">Update toast</button>
+    </>
+  );
+}
+
+function PromiseSuccessTrigger({ promise }: { promise: Promise<string> }) {
+  const { toastPromise } = useToast();
+
+  return (
+    <button
+      onClick={() => void toastPromise(promise, {
+        loading: { title: "Saving changes", variant: "info" },
+        success: (value) => ({ description: value, title: "Changes saved", variant: "success" }),
+        error: { title: "Save failed", variant: "error" },
+      })}
+      type="button"
+    >
+      Run success promise
+    </button>
+  );
+}
+
+function PromiseErrorTrigger({ promise }: { promise: Promise<string> }) {
+  const { toastPromise } = useToast();
+
+  return (
+    <button
+      onClick={() => void toastPromise(promise, {
+        loading: { title: "Uploading file", variant: "info" },
+        success: { title: "Upload complete", variant: "success" },
+        error: (error) => ({ description: error instanceof Error ? error.message : "Unknown error", title: "Upload failed", variant: "error" }),
+      }).catch(() => undefined)}
+      type="button"
+    >
+      Run error promise
+    </button>
+  );
+}
+
 function InvalidConsumer() {
   useToast();
   return null;
@@ -473,6 +519,78 @@ describe("Toast", () => {
     await user.click(screen.getByRole("button", { name: "Show toast" }));
 
     expect(screen.getByRole("status", { name: "Saved" })).toHaveClass("motion-reduce:transition-none");
+  });
+
+
+  it("updates an existing toast by id", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToastProvider>
+        <UpdateTrigger />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show update toast" }));
+    await user.click(screen.getByRole("button", { name: "Update toast" }));
+
+    expect(screen.getByRole("status", { name: "Sync complete" })).toHaveTextContent("All records are current.");
+    expect(screen.queryByText("Syncing")).not.toBeInTheDocument();
+  });
+
+  it("moves promise toasts from loading to success", async () => {
+    const user = userEvent.setup();
+    let resolvePromise!: (value: string) => void;
+    const promise = new Promise<string>((resolve) => {
+      resolvePromise = resolve;
+    });
+
+    render(
+      <ToastProvider>
+        <PromiseSuccessTrigger promise={promise} />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Run success promise" }));
+
+    expect(screen.getByRole("status", { name: "Saving changes" })).toBeInTheDocument();
+
+    await act(async () => {
+      resolvePromise("Saved 12 accounts.");
+      await promise;
+    });
+
+    expect(screen.getByRole("status", { name: "Changes saved" })).toHaveTextContent("Saved 12 accounts.");
+    expect(screen.queryByText("Saving changes")).not.toBeInTheDocument();
+  });
+
+  it("moves promise toasts from loading to error", async () => {
+    const user = userEvent.setup();
+    let rejectPromise!: (error: Error) => void;
+    const promise = new Promise<string>((_resolve, reject) => {
+      rejectPromise = reject;
+    });
+
+    render(
+      <ToastProvider>
+        <PromiseErrorTrigger promise={promise} />
+        <ToastViewport />
+      </ToastProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Run error promise" }));
+
+    expect(screen.getByRole("status", { name: "Uploading file" })).toBeInTheDocument();
+
+    await act(async () => {
+      rejectPromise(new Error("Network unavailable."));
+      await promise.catch(() => undefined);
+    });
+
+    expect(screen.getByRole("alert", { name: "Upload failed" })).toHaveTextContent("Network unavailable.");
+    expect(screen.queryByText("Uploading file")).not.toBeInTheDocument();
   });
 
   it("throws when useToast is rendered outside ToastProvider", () => {
